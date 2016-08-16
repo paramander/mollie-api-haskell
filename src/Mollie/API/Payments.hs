@@ -39,14 +39,31 @@ paymentsPath = "payments"
 -}
 newPayment :: Double -> Text.Text -> Text.Text -> NewPayment
 newPayment amount description redirectUrl = NewPayment
-    { newPayment_amount        = amount
-    , newPayment_description   = description
-    , newPayment_redirectUrl   = redirectUrl
-    , newPayment_webhookUrl    = Nothing
-    , newPayment_method        = Nothing
-    , newPayment_metadata      = Nothing
-    , newPayment_locale        = Nothing
-    , newPayment_recurringType = Nothing
+    { newPayment_amount            = amount
+    , newPayment_description       = description
+    , newPayment_redirectUrl       = redirectUrl
+    , newPayment_webhookUrl        = Nothing
+    , newPayment_method            = Nothing
+    , newPayment_metadata          = Nothing
+    , newPayment_locale            = Nothing
+    , newPayment_recurringType     = Nothing
+    , newPayment_customerId        = Nothing
+    , newPayment_issuer            = Nothing
+    , newPayment_billingAddress    = Nothing
+    , newPayment_billingCity       = Nothing
+    , newPayment_billingRegion     = Nothing
+    , newPayment_billingPostal     = Nothing
+    , newPayment_billingCountry    = Nothing
+    , newPayment_shippingAddress   = Nothing
+    , newPayment_shippingCity      = Nothing
+    , newPayment_shippingRegion    = Nothing
+    , newPayment_shippingPostal    = Nothing
+    , newPayment_shippingCountry   = Nothing
+    , newPayment_billingEmail      = Nothing
+    , newPayment_dueDate           = Nothing
+    , newPayment_consumerName      = Nothing
+    , newPayment_consumerAccount   = Nothing
+    , newPayment_customerReference = Nothing
     }
 
 {-|

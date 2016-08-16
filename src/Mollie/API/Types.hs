@@ -142,24 +142,61 @@ $(Aeson.deriveJSON
   For more information see: https://www.mollie.com/en/docs/reference/payments/create.
 -}
 data NewPayment = NewPayment
-    { newPayment_amount        :: Double
+    { newPayment_amount            :: Double
     -- ^Set the amount in EURO to charge. Minimum based on available payment methods.
-    , newPayment_description   :: Text.Text
+    , newPayment_description       :: Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
-    , newPayment_redirectUrl   :: Text.Text
+    , newPayment_redirectUrl       :: Text.Text
     -- ^Set the url the customer will be redirected to after the payment process.
-    , newPayment_webhookUrl    :: Maybe Text.Text
+    , newPayment_webhookUrl        :: Maybe Text.Text
     -- ^Set a specific webhook for this payment.
-    , newPayment_method        :: Maybe PaymentMethod
+    , newPayment_method            :: Maybe PaymentMethod
     -- ^Set a specific payment method for this payment. The customer will not have a choice when this is set.
-    , newPayment_metadata      :: Maybe Aeson.Value
+    , newPayment_metadata          :: Maybe Aeson.Value
     -- ^Set any additional data in JSON format.
-    , newPayment_locale        :: Maybe Locale
+    , newPayment_locale            :: Maybe Locale
     -- ^Force the payment screen language.
-    , newPayment_recurringType :: Maybe RecurringType
+    , newPayment_recurringType     :: Maybe RecurringType
     -- ^Set the recurring type, for more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
-    -- TODO: For recurring payments a customerId should be present, but is absent in the docs.
-    -- TODO: Add payment specific fields. See: https://www.mollie.com/nl/docs/reference/payments/create
+    , newPayment_customerId        :: Maybe Text.Text
+    -- ^Set a customer account for this payment.
+    -- IDEAL fields
+    , newPayment_issuer            :: Maybe Text.Text
+    -- CREDIT CARD
+    , newPayment_billingAddress    :: Maybe Text.Text
+    -- ^Set card holder's address. This is to improve the credit card fraude protection.
+    , newPayment_billingCity       :: Maybe Text.Text
+    -- ^Set the card holder's city.
+    , newPayment_billingRegion     :: Maybe Text.Text
+    -- ^Set the card holder's region.
+    , newPayment_billingPostal     :: Maybe Text.Text
+    -- ^Set the card holder's postal code.
+    , newPayment_billingCountry    :: Maybe Text.Text
+    -- ^Set the card holder's country in https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 format.
+    -- CREDIT CARD & PAYPAL
+    , newPayment_shippingAddress   :: Maybe Text.Text
+    -- ^Set the shipping address. This is to improve fraude protection. When used with PayPal the maximum length is 128 characters.
+    , newPayment_shippingCity      :: Maybe Text.Text
+    -- ^Set the shipping city. When used with PayPal the maximum length is 100 characters.
+    , newPayment_shippingRegion    :: Maybe Text.Text
+    -- ^Set the shipping region. When used with PayPal the maximum length is 100 characters and this field is required when the shipping country is one of the following countries: `AR` `BR` `CA` `CN` `ID` `IN` `JP` `MX` `TH` `US`.
+    , newPayment_shippingPostal    :: Maybe Text.Text
+    -- ^Set the shipping postal code. When used with PayPal the maximum length is 20 characters.
+    , newPayment_shippingCountry   :: Maybe Text.Text
+    -- ^Set the shipping country in https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 format.
+    -- BANK TRANSFER
+    , newPayment_billingEmail      :: Maybe Text.Text
+    -- ^Set the billing email address. Billing instructions will be send immediately when the payment is created. When no locale is set the email will be sent in English.
+    , newPayment_dueDate           :: Maybe Text.Text
+    -- ^Set the date this payment should expire, in `YYYY-MM-DD` format. Minimum date is tomorrow and maximum is 100 days from now.
+    -- SEPA DIRECT DEBIT
+    , newPayment_consumerName      :: Maybe Text.Text
+    -- ^Set the beneficiary name of the account holder.
+    , newPayment_consumerAccount   :: Maybe Text.Text
+    -- ^Set the account holders IBAN.
+    -- PAYSAFECARD
+    , newPayment_customerReference :: Maybe Text.Text
+    -- ^Set an identifier for the customer.
     }
     deriving (Show)
 
