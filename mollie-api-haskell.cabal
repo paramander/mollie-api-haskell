@@ -1,4 +1,4 @@
-name:                mollie
+name:                mollie-api-haskell
 version:             1.0.0.0
 synopsis:            Mollie API client for Haskell http://www.mollie.com
 description:         Please see README.md
@@ -11,6 +11,7 @@ copyright:           2016 Mats Rietdijk
 category:            Web
 build-type:          Simple
 -- extra-source-files:
+data-files:          data/cacert.pem
 cabal-version:       >=1.10
 
 library
@@ -19,12 +20,14 @@ library
                      , Mollie.API.Types
                      , Mollie.API.Payments
   other-modules:       Mollie.API.Internal
+                     , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
                      , aeson >= 0.11 && < 1
                      , time >= 1.5 && < 2
                      , text >= 1.2 && < 2
                      , http-client >= 0.4 && < 0.5
-                     , http-client-tls >= 0.2 && < 0.3
+                     , http-client-openssl >= 0.2 && < 0.3
+                     , HsOpenSSL >= 0.11 && < 0.12
                      , mtl >= 2.2 && < 3
                      , http-types >= 0.9 && < 1
                      , bytestring >= 0.10 && < 1
@@ -35,7 +38,7 @@ executable mollie
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
-                     , mollie
+                     , mollie-api-haskell
                      , text
   default-language:    Haskell2010
 
@@ -44,7 +47,7 @@ test-suite mollie-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , mollie
+                     , mollie-api-haskell
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
