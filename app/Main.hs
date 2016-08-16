@@ -27,8 +27,8 @@ main = do
         -- Nothing <- cancelPaymentRefund (payment_id payment1) (refund_id refund1)
         -- paymentRefundList <- getPaymentRefunds "tr_FgywfCctVw" 0 10
         -- refundList <- getRefunds 0 10
-        -- Right methodList <- getMethods En 0 250
-        -- Right method <- getMethod Ideal En
+        -- Right methodList <- getMethods "en" 0 250
+        -- Right method <- getMethod Ideal "en"
         -- Right issuerList <- getIssuers 0 250
         Right issuer <- getIssuer "ideal_TESTNL99"
         liftIO $ putStrLn $ show issuer

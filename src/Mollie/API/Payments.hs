@@ -10,7 +10,6 @@ module Mollie.API.Payments
     -- Re-export relevant types
     , PaymentStatus (..)
     , PaymentMethod (..)
-    , Locale (..)
     , RecurringType (..)
     , NewPayment (..)
     , PaymentMode (..)

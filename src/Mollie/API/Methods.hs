@@ -6,7 +6,6 @@ module Mollie.API.Methods
     , getMethods
     -- Re-export relevant types
     , PaymentMethod (..)
-    , Locale (..)
     , MethodAmount (..)
     , MethodImage (..)
     , Method (..)
@@ -34,7 +33,7 @@ methodsPath = "methods"
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/get.
 -}
-getMethod :: PaymentMethod -> Locale -> Mollie (Either Failure Method)
+getMethod :: PaymentMethod -> Text.Text -> Mollie (Either Failure Method)
 getMethod methodId locale = do
     (statusCode, rawBody) <- get path
     return $ case statusCode of
@@ -45,14 +44,14 @@ getMethod methodId locale = do
         _ -> Left $ RequestFailure statusCode rawBody
     where
         path = (Text.intercalate "/" [methodsPath, showT methodId]) <> query
-        query = "?locale=" <> showT locale
+        query = "?locale=" <> locale
 
 {-|
   Handler to get a list of payment methods. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payment methods returned with a single call is 250.
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/list.
 -}
-getMethods :: Locale -> Int -> Int -> Mollie (Either Failure (List Method))
+getMethods :: Text.Text -> Int -> Int -> Mollie (Either Failure (List Method))
 getMethods locale offset count = do
     (statusCode, rawBody) <- get path
     return $ case statusCode of
@@ -62,4 +61,4 @@ getMethods locale offset count = do
         _   -> Left $ RequestFailure statusCode rawBody
     where
         path = methodsPath <> query
-        query = "?locale=" <> showT locale <> "&offset=" <> showT offset <> "&count=" <> showT count
+        query = "?locale=" <> locale <> "&offset=" <> showT offset <> "&count=" <> showT count

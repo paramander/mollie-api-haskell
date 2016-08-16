@@ -94,35 +94,6 @@ instance Aeson.FromJSON PaymentMethod where
                   ]
 
 {-|
-  All available languages for Mollie's payment screen.
--}
-data Locale
-    = De
-    | En
-    | Es
-    | Fr
-    | Be
-    | BeFr
-    | Nl
-    | NewLocale Text.Text -- When this shows up in a response from or is required for a request to Mollie contact package maintainer.
-    deriving (Show, Eq)
-
-instance Aeson.ToJSON Locale where
-    toJSON (NewLocale lang) = Aeson.String lang
-    toJSON lang = Aeson.String . Text.pack . Aeson.camelTo2 '-' $ show lang
-
-instance Aeson.FromJSON Locale where
-    parseJSON val = case lookup val locales of
-        Just lang -> return lang
-        Nothing -> case val of
-            (Aeson.String lang) -> return $ NewLocale lang
-            invalid -> Aeson.typeMismatch "Locale" invalid
-        where locales = map
-                  (\loc -> (Aeson.toJSON loc, loc))
-                  [ De, En, Es, Fr, Be, BeFr, Nl
-                  ]
-
-{-|
   All available recurring types.
 -}
 data RecurringType
@@ -154,7 +125,7 @@ data NewPayment = NewPayment
     -- ^Set a specific payment method for this payment. The customer will not have a choice when this is set.
     , newPayment_metadata          :: Maybe Aeson.Value
     -- ^Set any additional data in JSON format.
-    , newPayment_locale            :: Maybe Locale
+    , newPayment_locale            :: Maybe Text.Text
     -- ^Force the payment screen language.
     , newPayment_recurringType     :: Maybe RecurringType
     -- ^Set the recurring type, for more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
@@ -280,7 +251,7 @@ data Payment = Payment
     -- ^The payment method used.
     , payment_metadata          :: Maybe Aeson.Value
     -- ^Custom privided metadata.
-    , payment_locale            :: Maybe Locale
+    , payment_locale            :: Maybe Text.Text
     -- ^The language used during checkout.
     , payment_profileId         :: Text.Text
     -- ^Identifier for the profile this payment was created on.
