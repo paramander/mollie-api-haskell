@@ -7,6 +7,7 @@ import           Mollie.API
 import           Mollie.API.Methods
 import           Mollie.API.Payments
 import           Mollie.API.Refunds
+import           Mollie.API.Issuers
 import qualified System.Environment  as Environment
 
 main :: IO ()
@@ -26,8 +27,9 @@ main = do
         -- Nothing <- cancelPaymentRefund (payment_id payment1) (refund_id refund1)
         -- paymentRefundList <- getPaymentRefunds "tr_FgywfCctVw" 0 10
         -- refundList <- getRefunds 0 10
-        Right methodList <- getMethods En 0 250
-        liftIO $ putStrLn $ show methodList
-        method <- getMethod Ideal En
-        liftIO $ putStrLn $ show method
+        -- Right methodList <- getMethods En 0 250
+        -- Right method <- getMethod Ideal En
+        -- Right issuerList <- getIssuers 0 250
+        Right issuer <- getIssuer "ideal_TESTNL99"
+        liftIO $ putStrLn $ show issuer
         return ()

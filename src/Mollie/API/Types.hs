@@ -434,6 +434,27 @@ $(Aeson.deriveFromJSON
     ''Method)
 
 {-|
+  Representation of an issuer available at Mollie.
+
+  For more information see: https://www.mollie.com/en/docs/reference/issuers/get.
+-}
+data Issuer = Issuer
+    { issuer_id     :: Text.Text
+    -- ^Mollies reference to the issuer.
+    , issuer_name   :: Text.Text
+    -- ^The issuers full name.
+    , issuer_method :: PaymentMethod
+    -- ^The payment method this issuer belongs to. Currently only Ideal is supported.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Issuer)
+
+{-|
   Failures which could happen when requesting resources from Mollie.
 -}
 data Failure

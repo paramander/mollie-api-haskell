@@ -41,6 +41,7 @@ getMethod methodId locale = do
         200 -> case Aeson.decode rawBody of
             Just method -> Right method
             Nothing     -> Left $ ParseFailure rawBody
+        404 -> Left NotFound
         _ -> Left $ RequestFailure statusCode rawBody
     where
         path = (Text.intercalate "/" [methodsPath, showT methodId]) <> query
