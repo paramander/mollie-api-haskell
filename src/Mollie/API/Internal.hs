@@ -47,14 +47,21 @@ execute request = do
     return (HTTP.statusCode $ HTTP.responseStatus response, HTTP.responseBody response)
 
 send :: (Aeson.ToJSON a) => HTTP.Method -> Text.Text -> a -> Mollie (Int, ByteString.ByteString)
-send method path body = do
-    request <- initialRequest path
+send method url body = do
+    request <- initialRequest url
     execute request
         { HTTP.method      = method
         , HTTP.requestBody = HTTP.RequestBodyLBS $ Aeson.encode body
         }
 
 get :: Text.Text -> Mollie (Int, ByteString.ByteString)
-get path = do
-    request <- initialRequest path
+get url = do
+    request <- initialRequest url
     execute request
+
+delete :: Text.Text -> Mollie (Int, ByteString.ByteString)
+delete url = do
+    request <- initialRequest url
+    execute request
+        { HTTP.method = HTTP.methodDelete
+        }

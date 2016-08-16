@@ -16,32 +16,32 @@ import qualified Data.Time            as Time
   the application by requesting the configured Webhook. Note
   that some changes will never be known to the application.
 
-  For more detailed information see: https://www.mollie.com/en/docs/status.
+  For more information see: https://www.mollie.com/en/docs/status.
 -}
 data PaymentStatus
-    = Open
+    = PaymentOpen
     -- ^Payment has been created. This is the initial status.
-    | Cancelled
+    | PaymentCancelled
     -- ^Customer has cancelled the payment.
-    | Pending
+    | PaymentPending
     -- ^The payment process has been started. No notification.
-    | Expired
+    | PaymentExpired
     -- ^The payment has expired. Some payment methods (like `banktransfer`) might need a few days to process.
-    | Failed
+    | PaymentFailed
     -- ^The payment can't be completed.
-    | Paid
+    | PaymentPaid
     -- ^The payment was successful. This is the success status.
-    | Paidout
+    | PaymentPaidout
     -- ^Mollie has transfered the payment to your bankaccount. No notification.
-    | Refunded
+    | PaymentRefunded
     -- ^You requested a refund for the payment.
-    | ChargedBack
+    | PaymentChargedBack
     -- ^The customer dispute the payment. This is possible with `creditcard`, `directdebit` and `paypal` payments.
     deriving (Show, Eq)
 
 $(Aeson.deriveJSON
     Aeson.defaultOptions
-        { Aeson.constructorTagModifier = Aeson.camelTo2 '_'
+        { Aeson.constructorTagModifier = Aeson.camelTo2 '_' . drop 7
         }
     ''PaymentStatus)
 
@@ -183,6 +183,8 @@ data PaymentLinks = PaymentLinks
     -- ^URL where the customer will be redirected to by Mollie after checkout.
     , paymentLinks_settlement  :: Maybe Text.Text
     -- ^URL to the settlement resource this payment belongs to.
+    , paymentLinks_refunds     :: Maybe Text.Text
+    -- ^URL to the refund resources for this payment.
     }
     deriving (Show)
 
@@ -248,17 +250,17 @@ $(Aeson.deriveFromJSON
     ''Payment)
 
 {-|
-  Important links associated with a PaymentList.
+  Important links associated with List responses.
 -}
-data PaymentListLinks = PaymentListLinks
-    { paymentListLinks_previous :: Maybe Text.Text
-    -- ^URL to previous list payments.
-    , paymentListLinks_next     :: Maybe Text.Text
-    -- ^URL to next list payments.
-    , paymentListLinks_first    :: Maybe Text.Text
-    -- ^URL to first list of payments.
-    , paymentListLinks_last     :: Maybe Text.Text
-    -- ^URL to last list of payments.
+data ListLinks = ListLinks
+    { listLinks_previous :: Maybe Text.Text
+    -- ^URL to previous list.
+    , listLinks_next     :: Maybe Text.Text
+    -- ^URL to next list.
+    , listLinks_first    :: Maybe Text.Text
+    -- ^URL to first list.
+    , listLinks_last     :: Maybe Text.Text
+    -- ^URL to last list.
     }
     deriving (Show)
 
@@ -266,24 +268,24 @@ $(Aeson.deriveFromJSON
     Aeson.defaultOptions
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
-    ''PaymentListLinks)
+    ''ListLinks)
 
 {-|
-  List response for payments with metadata.
+  List response for any resource with metadata.
 
   For more information see: https://www.mollie.com/nl/docs/reference/payments/list.
 -}
-data PaymentList = PaymentList
-    { paymentList_totalCount :: Int
-    -- ^Total number of payments available.
-    , paymentList_offset     :: Int
-    -- ^The number of skipped payments.
-    , paymentList_count      :: Int
-    -- ^The number of payments found in `data`.
-    , paymentList_data       :: [Payment]
-    -- ^The payments for this request.
-    , paymentList_links      :: PaymentListLinks
-    -- ^Important links for this payment list.
+data List a = List
+    { list_totalCount :: Int
+    -- ^Total number of resources available.
+    , list_offset     :: Int
+    -- ^The number of skipped resources.
+    , list_count      :: Int
+    -- ^The number of resources found in `data`.
+    , list_data       :: [a]
+    -- ^The resources for this request.
+    , list_links      :: Maybe ListLinks
+    -- ^Important links for this list.
     }
     deriving (Show)
 
@@ -291,7 +293,73 @@ $(Aeson.deriveFromJSON
     Aeson.defaultOptions
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
-    ''PaymentList)
+    ''List)
+
+{-|
+  Structure to request a refund.
+
+  For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
+-}
+data NewRefund = NewRefund
+    { newRefund_amount      :: Maybe Double
+    -- ^Set the amount in EURO that should be refunded. If left `Nothing` the full amount of the targetted payment will be refunded.
+    , newRefund_description :: Maybe Text.Text
+    -- ^Set the description. Will be shown on card or bank statement.
+    }
+    deriving (Show)
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''NewRefund)
+
+{-|
+  All possible statusses a refund could be assigned.
+
+  For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
+-}
+data RefundStatus
+    = RefundPending
+    -- ^The payment will be processed soon (usually the next business day). The refund could still be cancelled, see: https://www.mollie.com/en/docs/reference/refunds/delete.
+    | RefundProcessing
+    -- ^The refund is processing, cancellation is no longer possible.
+    | RefundRefunded
+    -- ^The refund has been paid out the the customer.
+    deriving (Show, Eq)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.constructorTagModifier = Aeson.camelTo2 '_' . drop 6
+        }
+    ''RefundStatus)
+
+{-|
+  Representation of a refund made with Mollie.
+
+  Note that the amount is curently returned as text because Mollie does not return it as a valid json number.
+
+  For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
+-}
+data Refund = Refund
+    { refund_id               :: Text.Text
+    -- ^Mollies reference to the refund.
+    , refund_payment          :: Payment
+    -- ^The payment for which this refund was made.
+    , refund_amount           :: Text.Text -- FAIL: Amount is currently being returned as String
+    -- ^The amount of EURO which this refund refunded.
+    , refund_status           :: RefundStatus
+    -- ^The status in which this refund currently is.
+    , refund_refundedDatetime :: Maybe Time.UTCTime
+    -- ^The date on which the refund was issued.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Refund)
 
 {-|
   Failures which could happen when requesting resources from Mollie.

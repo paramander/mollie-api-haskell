@@ -19,6 +19,7 @@ library
   exposed-modules:     Mollie.API
                      , Mollie.API.Types
                      , Mollie.API.Payments
+                     , Mollie.API.Refunds
   other-modules:       Mollie.API.Internal
                      , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
