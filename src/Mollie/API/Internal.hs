@@ -30,6 +30,9 @@ endpoint = "https://api.mollie.nl"
 version :: Text.Text
 version = "v1"
 
+showT :: (Show a) => a -> Text.Text
+showT = Text.pack . show
+
 initialRequest :: Text.Text -> Mollie (HTTP.Request)
 initialRequest path = do
     api_key <- Reader.asks env_key

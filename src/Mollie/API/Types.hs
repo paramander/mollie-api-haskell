@@ -61,11 +61,24 @@ data PaymentMethod
     | Podiumcadeaukaart
     | Paysafecard
     | NewPaymentMethod Text.Text -- When this shows up in a response from or is required for a request to Mollie contact package maintainer.
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show PaymentMethod where
+    show Ideal                   = "ideal"
+    show Creditcard              = "creditcard"
+    show Mistercard              = "mistercard"
+    show Sofort                  = "sofort"
+    show Banktransfer            = "banktransfer"
+    show Directdebit             = "directdebit"
+    show Belfius                 = "belfius"
+    show Paypal                  = "paypal"
+    show Bitcoin                 = "bitcoin"
+    show Podiumcadeaukaart       = "podiumcadeaukaart"
+    show Paysafecard             = "paysafecard"
+    show (NewPaymentMethod text) = Text.unpack text
 
 instance Aeson.ToJSON PaymentMethod where
-    toJSON (NewPaymentMethod method) = Aeson.String method
-    toJSON method = Aeson.String . Text.pack . Aeson.camelTo2 '_' $ show method
+    toJSON method = Aeson.String . Text.pack $ show method
 
 instance Aeson.FromJSON PaymentMethod where
     parseJSON val = case lookup val methods of
@@ -83,7 +96,7 @@ instance Aeson.FromJSON PaymentMethod where
 {-|
   All available languages for Mollie's payment screen.
 -}
-data PaymentScreenLanguage
+data Locale
     = De
     | En
     | Es
@@ -91,21 +104,21 @@ data PaymentScreenLanguage
     | Be
     | BeFr
     | Nl
-    | NewLanguage Text.Text -- When this shows up in a response from or is required for a request to Mollie contact package maintainer.
+    | NewLocale Text.Text -- When this shows up in a response from or is required for a request to Mollie contact package maintainer.
     deriving (Show, Eq)
 
-instance Aeson.ToJSON PaymentScreenLanguage where
-    toJSON (NewLanguage lang) = Aeson.String lang
+instance Aeson.ToJSON Locale where
+    toJSON (NewLocale lang) = Aeson.String lang
     toJSON lang = Aeson.String . Text.pack . Aeson.camelTo2 '-' $ show lang
 
-instance Aeson.FromJSON PaymentScreenLanguage where
-    parseJSON val = case lookup val languages of
+instance Aeson.FromJSON Locale where
+    parseJSON val = case lookup val locales of
         Just lang -> return lang
         Nothing -> case val of
-            (Aeson.String lang) -> return $ NewLanguage lang
-            invalid -> Aeson.typeMismatch "PaymentScreenLanguage" invalid
-        where languages = map
-                  (\lang -> (Aeson.toJSON lang, lang))
+            (Aeson.String lang) -> return $ NewLocale lang
+            invalid -> Aeson.typeMismatch "Locale" invalid
+        where locales = map
+                  (\loc -> (Aeson.toJSON loc, loc))
                   [ De, En, Es, Fr, Be, BeFr, Nl
                   ]
 
@@ -141,7 +154,7 @@ data NewPayment = NewPayment
     -- ^Set a specific payment method for this payment. The customer will not have a choice when this is set.
     , newPayment_metadata      :: Maybe Aeson.Value
     -- ^Set any additional data in JSON format.
-    , newPayment_locale        :: Maybe PaymentScreenLanguage
+    , newPayment_locale        :: Maybe Locale
     -- ^Force the payment screen language.
     , newPayment_recurringType :: Maybe RecurringType
     -- ^Set the recurring type, for more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
@@ -230,7 +243,7 @@ data Payment = Payment
     -- ^The payment method used.
     , payment_metadata          :: Maybe Aeson.Value
     -- ^Custom privided metadata.
-    , payment_locale            :: Maybe PaymentScreenLanguage
+    , payment_locale            :: Maybe Locale
     -- ^The language used during checkout.
     , payment_profileId         :: Text.Text
     -- ^Identifier for the profile this payment was created on.
@@ -360,6 +373,65 @@ $(Aeson.deriveFromJSON
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
     ''Refund)
+
+{-|
+  Minimum and maximum amounts for a payment method.
+
+  Note that the amounts are curently returned as text because Mollie does not return them as valid json numbers.
+-}
+data MethodAmount = MethodAmount
+    { methodAmount_minimum :: Text.Text -- FAIL: Amount is currently being returned as String
+    -- ^The minimum amount of EURO for which it's possible to use this method.
+    , methodAmount_maximum :: Text.Text -- FAIL: Amount is currently being returned as String
+    -- ^The maximum amount of EURO for which it's possible to use this method.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''MethodAmount)
+
+{-|
+  Images associated with a payment method.
+-}
+data MethodImage = MethodImage
+    { methodImage_normal :: Text.Text
+    -- ^Normal method icon, 40x40 pixels.
+    , methodImage_bigger :: Text.Text
+    -- ^Bigger method icon, 80x80px pixels.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''MethodImage)
+
+{-|
+  Representation of a payment method available at Mollie.
+
+  For more information see: https://www.mollie.com/en/docs/reference/methods/get.
+-}
+data Method = Method
+    { method_id          :: PaymentMethod
+    -- ^Mollies reference to the method.
+    , method_description :: Text.Text
+    -- ^Full name of the method. This value changes based on requested locale.
+    , method_amount      :: MethodAmount
+    -- ^Range for this method in EURO.
+    , method_image       :: MethodImage
+    -- ^Icons for this method.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Method)
 
 {-|
   Failures which could happen when requesting resources from Mollie.

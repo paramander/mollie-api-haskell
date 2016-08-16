@@ -10,7 +10,7 @@ module Mollie.API.Payments
     -- Re-export relevant types
     , PaymentStatus (..)
     , PaymentMethod (..)
-    , PaymentScreenLanguage (..)
+    , Locale (..)
     , RecurringType (..)
     , NewPayment (..)
     , PaymentMode (..)
@@ -97,4 +97,4 @@ getPayments offset count = do
         _   -> Left $ RequestFailure statusCode rawBody
     where
         path = paymentsPath <> query
-        query = "?offset=" <> (Text.pack $ show offset) <> "&count=" <> (Text.pack $ show count)
+        query = "?offset=" <> showT offset <> "&count=" <> showT count

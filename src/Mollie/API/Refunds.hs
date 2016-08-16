@@ -107,7 +107,7 @@ getPaymentRefunds paymentId offset count = do
         _   -> Left $ RequestFailure statusCode rawBody
     where
         path = (Text.intercalate "/" [paymentsPath, paymentId, refundsPath]) <> query
-        query = "?offset=" <> (Text.pack $ show offset) <> "&count=" <> (Text.pack $ show count)
+        query = "?offset=" <> showT offset <> "&count=" <> showT count
 
 {-|
   Handler to get a list of refunds. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of refunds returned with a single call is 250.
@@ -124,4 +124,4 @@ getRefunds offset count = do
         _   -> Left $ RequestFailure statusCode rawBody
     where
         path = refundsPath <> query
-        query = "?offset=" <> (Text.pack $ show offset) <> "&count=" <> (Text.pack $ show count)
+        query = "?offset=" <> showT offset <> "&count=" <> showT count
