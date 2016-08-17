@@ -549,7 +549,8 @@ $(Aeson.deriveToJSON
   All possible statusses for a Mandate.
 -}
 data MandateStatus
-    = MandateValid
+    = MandatePending -- TODO: Validate this state, from https://www.mollie.com/nl/docs/recurring.
+    | MandateValid
     | MandateInvalid
     deriving (Show, Eq)
 
@@ -589,7 +590,7 @@ $(Aeson.deriveFromJSON
     ''MandateDetails)
 
 {-|
-  Representation of an mandate available at Mollie.
+  Representation of a mandate available at Mollie.
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
@@ -616,6 +617,106 @@ $(Aeson.deriveFromJSON
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
     ''Mandate)
+
+{-|
+  Structure to request a new subscription with.
+
+  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
+-}
+data NewSubscription = NewSubscription
+    { newSubscription_amount      :: Double
+    -- ^Set the constant amount in EURO you want to charge with each payment.
+    , newSubscription_times       :: Maybe Int
+    -- ^Set the total number of charges for the subscription to complete. Leave empty for ongoing subscriptions.
+    , newSubscription_interval    :: Text.Text
+    -- ^Set the interval to wait between charges like `1 month(s)`, `2 weeks` or `14 days`.
+    , newSubscription_description :: Text.Text
+    -- ^Set the description which will be included in the payment description along with the carge date in `Y-m-d` format.
+    , newSubscription_method      :: Maybe PaymentMethod
+    -- ^Force the payment method, leave empty to use one of the customers valid mandates.
+    , newSubscription_webhookUrl  :: Maybe Text.Text
+    -- ^Set a webhook URL for all subscription payments.
+    }
+    deriving (Show)
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''NewSubscription)
+
+{-|
+  All possible statusses a subscription could be assigned.
+
+  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
+-}
+data SubscriptionStatus
+    = SubscriptionPending
+    | SubscriptionActive
+    | SubscriptionCancelled
+    | SubscriptionSuspended
+    | SubscriptionCompleted
+    deriving (Show, Eq)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.constructorTagModifier = Aeson.camelTo2 '_' . drop 12
+        }
+    ''SubscriptionStatus)
+
+{-|
+  Important links used for a subscription.
+-}
+data SubscriptionLinks = SubscriptionLinks
+    { subscriptionLinks_webhookUrl :: Maybe Text.Text
+    -- ^The webhook URL used for payment made with this subscription.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''SubscriptionLinks)
+
+{-|
+  Representation of a subscription available at Mollie.
+
+  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
+-}
+data Subscription = Subscription
+    { subscription_id                :: Text.Text
+    -- ^Mollies reference to the subscription.
+    , subscription_customerId        :: Text.Text
+    -- ^The reference to the customer this subscription was made for.
+    , subscription_mode              :: Mode
+    -- ^The mode used to create this subscription
+    , subscription_createdDatetime   :: Time.UTCTime
+    -- ^The date on which this subscription was created.
+    , subscription_status            :: SubscriptionStatus
+    -- ^The subscriptions status.
+    , subscription_amount            :: Text.Text -- FAIL: Amount is currently being returned as String
+    -- ^The amount of EURO charged with each payment for this subscription.
+    , subscription_times             :: Maybe Int
+    -- ^The total number or charges for the subscription to complete.
+    , subscription_interval          :: Text.Text
+    -- ^The interval to wait between charges.
+    , subscription_description       :: Text.Text
+    -- ^The description for the payments made with this subscription.
+    , subscription_method            :: Maybe PaymentMethod
+    -- ^The payment method used for this subscription.
+    , subscription_cancelledDatetime :: Maybe Time.UTCTime
+    -- ^The date on which this subscription was cancelled.
+    , subscription_links             :: SubscriptionLinks
+    -- ^Important links used for this subscription.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Subscription)
 
 {-|
   Failures which could happen when requesting resources from Mollie.
