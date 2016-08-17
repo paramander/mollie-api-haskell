@@ -179,9 +179,9 @@ $(Aeson.deriveToJSON
     ''NewPayment)
 
 {-|
-  All available payment modes.
+  All available API modes.
 -}
-data PaymentMode
+data Mode
     = Live
     | Test
     deriving (Show, Eq)
@@ -190,7 +190,7 @@ $(Aeson.deriveJSON
     Aeson.defaultOptions
         { Aeson.constructorTagModifier = Aeson.camelTo2 '_'
         }
-    ''PaymentMode)
+    ''Mode)
 
 {-|
   Important links used for a payment.
@@ -225,7 +225,7 @@ $(Aeson.deriveFromJSON
 data Payment = Payment
     { payment_id                :: Text.Text
     -- ^Mollie's reference to the payment resource.
-    , payment_mode              :: PaymentMode
+    , payment_mode              :: Mode
     -- ^The mode used to create this payment.
     , payment_createdDatetime   :: Time.UTCTime
     -- ^The date on which the payment was created.
@@ -255,6 +255,8 @@ data Payment = Payment
     -- ^The language used during checkout.
     , payment_profileId         :: Text.Text
     -- ^Identifier for the profile this payment was created on.
+    , payment_customerId        :: Maybe Text.Text
+    -- ^Identifier for the customer this payment was created for.
     , payment_settlementId      :: Maybe Text.Text
     -- ^Identifier for the settlement this payment belongs to.
     , payment_links             :: PaymentLinks
@@ -461,6 +463,60 @@ $(Aeson.deriveFromJSON
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
     ''Issuer)
+
+{-|
+  Structure to request a new customer with.
+
+  For more information see: https://www.mollie.com/en/docs/reference/customers/create.
+-}
+data NewCustomer = NewCustomer
+    { newCustomer_name     :: Text.Text
+    -- ^Set the full name of the customer.
+    , newCustomer_email    :: Text.Text
+    -- ^Set the email address.
+    , newCustomer_locale   :: Maybe Text.Text
+    -- ^Set the language to use for this customer during checkout,
+    , newCustomer_metadata :: Maybe Aeson.Value
+    -- ^Set any additional data in JSON format.
+    }
+    deriving (Show)
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''NewCustomer)
+
+{-|
+  Representation of an customer available at Mollie.
+
+  For more information see: https://www.mollie.com/en/docs/reference/customers/get.
+-}
+data Customer = Customer
+    { customer_id                  :: Text.Text
+    -- ^Mollies reference to the customer.
+    , customer_mode                :: Mode
+    -- ^The mode in which this customer was created.
+    , customer_name                :: Text.Text
+    -- ^The customers full name.
+    , customer_email               :: Text.Text
+    -- ^The cusomters email address.
+    , customer_locale              :: Maybe Text.Text
+    -- ^The locale used for this customer during checkout.
+    , customer_metadata            :: Maybe Aeson.Value
+    -- ^Custom privided data for this customer.
+    , customer_recentlyUsedMethods :: [PaymentMethod]
+    -- ^The payment methods this customer recently used.
+    , customer_createdDatetime     :: Time.UTCTime
+    -- ^The creation date of this customer.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Customer)
 
 {-|
   Failures which could happen when requesting resources from Mollie.

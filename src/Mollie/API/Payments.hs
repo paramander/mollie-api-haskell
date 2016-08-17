@@ -12,7 +12,7 @@ module Mollie.API.Payments
     , PaymentMethod (..)
     , RecurringType (..)
     , NewPayment (..)
-    , PaymentMode (..)
+    , Mode (..)
     , PaymentLinks (..)
     , Payment (..)
     , ListLinks (..)
