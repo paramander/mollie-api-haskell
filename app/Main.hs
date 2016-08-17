@@ -9,6 +9,7 @@ import           Mollie.API.Payments
 import           Mollie.API.Refunds
 import           Mollie.API.Issuers
 import           Mollie.API.Customers
+import           Mollie.API.Mandates
 import qualified System.Environment  as Environment
 
 main :: IO ()
@@ -39,6 +40,8 @@ main = do
         -- Right payment <- createPayment (newPayment 10 "Description" "http://localhost:3000")
         --     { newPayment_customerId = Just "cst_kM5sMuBQst"
         --     }
-        Right customerPaymentList <- getCustomerPayments "cst_kM5sMuBQst" 0 250
-        liftIO $ putStrLn $ show customerPaymentList
+        -- Right customerPaymentList <- getCustomerPayments "cst_kM5sMuBQst" 0 250
+        -- Right mandate <- createCustomerMandate "cst_kM5sMuBQst" (newMandate Directdebit "Test customer" "NL73ABNA0523040997")
+        Right mandateList <- getCustomerMandates "cst_kM5sMuBQst" 0 250
+        liftIO $ putStrLn $ show mandateList
         return ()

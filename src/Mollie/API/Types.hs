@@ -39,7 +39,7 @@ data PaymentStatus
     -- ^The customer dispute the payment. This is possible with `creditcard`, `directdebit` and `paypal` payments.
     deriving (Show, Eq)
 
-$(Aeson.deriveJSON
+$(Aeson.deriveFromJSON
     Aeson.defaultOptions
         { Aeson.constructorTagModifier = Aeson.camelTo2 '_' . drop 7
         }
@@ -517,6 +517,105 @@ $(Aeson.deriveFromJSON
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
     ''Customer)
+
+{-|
+  Structure to request a new mandate with.
+
+  For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
+-}
+data NewMandate = NewMandate
+    { newMandate_method           :: PaymentMethod
+    -- ^Set the payment method of the mandate. Currently only directdebit is supported.
+    , newMandate_consumerName     :: Text.Text
+    -- ^Set the consumer's name.
+    , newMandate_consumerAccount  :: Text.Text
+    -- ^Set the consumer's IBAN.
+    , newMandate_consumerBic      :: Maybe Text.Text
+    -- ^Set the consumer's bank BIC/SWIFT code.
+    , newMandate_signatureDate    :: Maybe Text.Text
+    -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
+    , newMandate_mandateReference :: Maybe Text.Text
+    -- ^Set a custom reference to this mandate.
+    }
+    deriving (Show)
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''NewMandate)
+
+{-|
+  All possible statusses for a Mandate.
+-}
+data MandateStatus
+    = MandateValid
+    | MandateInvalid
+    deriving (Show, Eq)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.constructorTagModifier = Aeson.camelTo2 '_' . drop 7
+        }
+    ''MandateStatus)
+
+{-|
+  Details which might be available on Mandates.
+-}
+data MandateDetails = MandateDetails
+    { mandateDetails_consumerName    :: Maybe Text.Text
+    -- ^The direct debit account holder's name.
+    , mandateDetails_consumerAccount :: Maybe Text.Text
+    -- ^The direct debit account IBAN.
+    , mandateDetails_consumerBic     :: Maybe Text.Text
+    -- ^The direct debit account BIC.
+    , mandateDetails_cardHolder      :: Maybe Text.Text
+    -- ^The credit card holder's name.
+    , mandateDetails_cardNumber      :: Maybe Text.Text
+    -- ^The last 4 digits of the credit card number.
+    , mandateDetails_cardLabel       :: Maybe Text.Text
+    -- ^The credit card's label.
+    , mandateDetails_cardFingerprint :: Maybe Text.Text
+    -- ^Unique alphanumeric representation of a credit card. Usable to identify returning customers.
+    , mandateDetails_cardExpiryDate  :: Maybe Text.Text
+    -- ^The credit card's expiry date in `YYYY-MM-DD` format.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''MandateDetails)
+
+{-|
+  Representation of an mandate available at Mollie.
+
+  For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
+-}
+data Mandate = Mandate
+    { mandate_id               :: Text.Text
+    -- ^Mollies reference to the mandate.
+    , mandate_status           :: MandateStatus
+    -- ^The status of the mandate.
+    , mandate_method           :: PaymentMethod
+    -- ^The payment method of the mandate.
+    , mandate_customerId       :: Text.Text
+    -- ^The reference to the customer this mandate is assigned to.
+    , mandate_details          :: Maybe MandateDetails
+    -- ^The mandate details.
+    , mandate_mandateReference :: Maybe Text.Text
+    -- ^The custom reference set for this mandate.
+    , mandate_createdDatetime  :: Time.UTCTime
+    -- ^The date on which this mandate was created.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Mandate)
 
 {-|
   Failures which could happen when requesting resources from Mollie.

@@ -23,6 +23,7 @@ library
                      , Mollie.API.Methods
                      , Mollie.API.Issuers
                      , Mollie.API.Customers
+                     , Mollie.API.Mandates
   other-modules:       Mollie.API.Internal
                      , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
