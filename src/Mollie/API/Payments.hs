@@ -37,7 +37,7 @@ import           Mollie.API.Types
 import qualified Network.HTTP.Types  as HTTP
 
 {-|
-  Payment resource's path, relative to API's versioned url.
+  Payment resource's path, relative to API's versioned url or to a customer resource url.
 -}
 paymentsPath :: Text.Text
 paymentsPath = "payments"
