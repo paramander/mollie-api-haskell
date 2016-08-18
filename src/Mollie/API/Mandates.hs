@@ -53,7 +53,9 @@ createCustomerMandate :: Text.Text -> NewMandate -> Mollie (Either Failure Manda
 createCustomerMandate customerId newMandate = do
     (statusCode, rawBody) <- send HTTP.methodPost path newMandate
     return $ case statusCode of
-        201 -> case Aeson.decode rawBody of
+        -- TODO: Docs say creates return 201 statusses but example shows 200 status.
+        --       This works but it would be nice to find the exact code we will receive.
+        code | elem code [200, 201] -> case Aeson.decode rawBody of
             Just mandate -> Right mandate
             Nothing      -> Left $ ParseFailure rawBody
         404 -> Left NotFound
