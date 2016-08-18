@@ -722,7 +722,48 @@ $(Aeson.deriveFromJSON
   Failures which could happen when requesting resources from Mollie.
 -}
 data Failure
-    = RequestFailure Int ByteString.ByteString -- TODO: Add more specific request errors
+    = RequestFailure Int ByteString.ByteString
     | ParseFailure ByteString.ByteString
     | NotFound
     deriving (Show, Eq)
+
+{-|
+  Error data representations when needed for debugging.
+
+  For more information see: https://www.mollie.com/en/docs/errors.
+-}
+data ErrorLinks = ErrorLinks
+    { errorLinks_documentation :: Text.Text
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''ErrorLinks)
+
+data ErrorBody = ErrorBody
+    { errorBody_type    :: Text.Text
+    , errorBody_message :: Text.Text
+    , errorBody_field   :: Maybe Text.Text
+    , errorBody_links   :: Maybe ErrorLinks
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''ErrorBody)
+
+data Error = Error
+    { error_error :: ErrorBody
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Error)
