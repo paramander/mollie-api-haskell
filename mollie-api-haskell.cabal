@@ -2,12 +2,12 @@ name:                mollie-api-haskell
 version:             0.1.0.0
 synopsis:            Mollie API client for Haskell http://www.mollie.com
 description:         Please see README.md
-homepage:            https://github.com/matsrietdijk/mollie-api-haskell#readme
+homepage:            https://gitlab.com/paramander/mollie-api-haskell
 license:             BSD3
 license-file:        LICENSE
-author:              Mats Rietdijk
-maintainer:          matsrietdijk@gmail.com
-copyright:           2016 Mats Rietdijk
+author:              Paramander
+maintainer:          mats@paramander.com
+copyright:           2016 Paramander
 category:            Web
 build-type:          Simple
 -- extra-source-files:
@@ -50,4 +50,4 @@ test-suite mollie-test
 
 source-repository head
   type:     git
-  location: https://github.com/matsrietdijk/mollie-api-haskell
+  location: https://gitlab.com/paramander/mollie-api-haskell

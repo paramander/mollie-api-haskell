@@ -26,7 +26,7 @@ To successfully receive a payment, these steps should be implemented:
 If you wish to learn more about our API, please visit the [Mollie Developer Portal](https://www.mollie.com/developer/). API Documentation is available in both Dutch and English.
 
 ## License
-[BSD3](https://opensource.org/licenses/BSD-3-Clause). Copyright (c) 2016, Mats Rietdijk.
+[BSD3](https://opensource.org/licenses/BSD-3-Clause). Copyright (c) 2016, [Paramander](https://www.paramander.com).
 
 ## Support
 
