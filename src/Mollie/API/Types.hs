@@ -11,6 +11,13 @@ import qualified Data.Text            as Text
 import qualified Data.Time            as Time
 
 {-|
+  Helper class for when data is required to be transformed
+  to Mollies format.
+-}
+class ToText a where
+    toText :: a -> Text.Text
+
+{-|
   All possible statusses which can be assigned to a payment.
   When an important status changes occurs Mollie will notify
   the application by requesting the configured Webhook. Note
@@ -37,7 +44,10 @@ data PaymentStatus
     -- ^You requested a refund for the payment.
     | PaymentChargedBack
     -- ^The customer dispute the payment. This is possible with `creditcard`, `directdebit` and `paypal` payments.
-    deriving (Show, Eq)
+    deriving (Read, Show, Eq)
+
+instance ToText PaymentStatus where
+    toText = Text.pack . Aeson.camelTo2 '_' . drop 7 . show
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
@@ -61,24 +71,14 @@ data PaymentMethod
     | Podiumcadeaukaart
     | Paysafecard
     | NewPaymentMethod Text.Text -- When this shows up in a response from or is required for a request to Mollie contact package maintainer.
-    deriving (Eq)
+    deriving (Read, Show, Eq)
 
-instance Show PaymentMethod where
-    show Ideal                   = "ideal"
-    show Creditcard              = "creditcard"
-    show Mistercard              = "mistercard"
-    show Sofort                  = "sofort"
-    show Banktransfer            = "banktransfer"
-    show Directdebit             = "directdebit"
-    show Belfius                 = "belfius"
-    show Paypal                  = "paypal"
-    show Bitcoin                 = "bitcoin"
-    show Podiumcadeaukaart       = "podiumcadeaukaart"
-    show Paysafecard             = "paysafecard"
-    show (NewPaymentMethod text) = Text.unpack text
+instance ToText PaymentMethod where
+    toText (NewPaymentMethod text) = text
+    toText a = Text.pack $ Aeson.camelTo2 '_' $ show a
 
 instance Aeson.ToJSON PaymentMethod where
-    toJSON method = Aeson.String . Text.pack $ show method
+    toJSON = Aeson.String . toText
 
 instance Aeson.FromJSON PaymentMethod where
     parseJSON val = case lookup val methods of
@@ -99,7 +99,10 @@ instance Aeson.FromJSON PaymentMethod where
 data RecurringType
     = First
     | Recurring
-    deriving (Show, Eq)
+    deriving (Read, Show, Eq)
+
+instance ToText RecurringType where
+    toText = Text.pack . Aeson.camelTo2 '_' . show
 
 $(Aeson.deriveJSON
     Aeson.defaultOptions
@@ -184,7 +187,10 @@ $(Aeson.deriveToJSON
 data Mode
     = Live
     | Test
-    deriving (Show, Eq)
+    deriving (Read, Show, Eq)
+
+instance ToText Mode where
+    toText = Text.pack . Aeson.camelTo2 '_' . show
 
 $(Aeson.deriveJSON
     Aeson.defaultOptions
@@ -349,7 +355,10 @@ data RefundStatus
     -- ^The refund is processing, cancellation is no longer possible.
     | RefundRefunded
     -- ^The refund has been paid out the the customer.
-    deriving (Show, Eq)
+    deriving (Read, Show, Eq)
+
+instance ToText RefundStatus where
+    toText = Text.pack . Aeson.camelTo2 '_' . drop 6 . show
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
@@ -552,7 +561,10 @@ data MandateStatus
     = MandatePending -- TODO: Validate this state, from https://www.mollie.com/nl/docs/recurring.
     | MandateValid
     | MandateInvalid
-    deriving (Show, Eq)
+    deriving (Read, Show, Eq)
+
+instance ToText MandateStatus where
+    toText = Text.pack . Aeson.camelTo2 '_' . drop 7 . show
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
@@ -656,7 +668,10 @@ data SubscriptionStatus
     | SubscriptionCancelled
     | SubscriptionSuspended
     | SubscriptionCompleted
-    deriving (Show, Eq)
+    deriving (Read, Show, Eq)
+
+instance ToText SubscriptionStatus where
+    toText = Text.pack . Aeson.camelTo2 '_' . drop 12 . show
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions

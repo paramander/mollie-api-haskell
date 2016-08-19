@@ -43,7 +43,7 @@ getMethod methodId locale = do
         404 -> Left NotFound
         _ -> Left $ RequestFailure statusCode rawBody
     where
-        path = (Text.intercalate "/" [methodsPath, showT methodId]) <> query
+        path = (Text.intercalate "/" [methodsPath, toText methodId]) <> query
         query = "?locale=" <> locale
 
 {-|
