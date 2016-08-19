@@ -194,13 +194,22 @@ paymentsHistoryHandler = do
         Right paymentList -> do
             -- Extract the payments from the list and display them.
             let payments = list_data paymentList
-                paymentTag payment = li_ $ do
-                    (toHtmlRaw ("&euro;" :: Text))
-                    (toHtml $ payment_amount payment <> ", status: " <> (toText $ payment_status payment))
+                paymentTag :: Payment -> Html ()
+                paymentTag payment = tr_ $ do
+                    td_ (toHtml $ payment_id payment)
+                    td_ $ do
+                        (toHtmlRaw ("&euro;" :: Text))
+                        (toHtml $ payment_amount payment)
+                    td_ (toHtml $ toText $ payment_status payment)
 
             html $ renderText $ do
-                ul_ $ do
-                    mapM_ paymentTag payments
+                table_ $ do
+                    thead_ $ tr_ $ do
+                        th_ "ID"
+                        th_ "Amount"
+                        th_ "Status"
+                    tbody_ $ do
+                        mapM_ paymentTag payments
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
 
 listActivatedMethodsHandler :: Handler ()
