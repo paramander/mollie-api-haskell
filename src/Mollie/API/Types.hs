@@ -206,7 +206,7 @@ data PaymentLinks = PaymentLinks
     -- ^URL where the customer should be redirected to pay.
     , paymentLinks_webhookUrl  :: Maybe Text.Text
     -- ^URL for the webhook called on status changes.
-    , paymentLinks_redirectUrl :: Text.Text
+    , paymentLinks_redirectUrl :: Maybe Text.Text
     -- ^URL where the customer will be redirected to by Mollie after checkout.
     , paymentLinks_settlement  :: Maybe Text.Text
     -- ^URL to the settlement resource this payment belongs to.
