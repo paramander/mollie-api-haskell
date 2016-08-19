@@ -28,6 +28,8 @@ import           Lucid.Html5
 import           Mollie.API.Issuers
 -- list activated methods
 import           Mollie.API.Methods
+-- new customer
+import           Mollie.API.Customers
 
 type Handler a = ActionT TL.Text (ReaderT Env IO) a
 
@@ -45,6 +47,7 @@ main = do
         get "/payments-history" paymentsHistoryHandler
         get "/list-activated-methods" listActivatedMethodsHandler
         get "/refund-payment" refundPaymentHandler
+        get "/new-customer" newCustomerHandler
         notFound (text "Page not found")
 
 withMollie :: Mollie a -> Handler a
@@ -254,4 +257,16 @@ refundPaymentHandler = do
                         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
                 _ -> text "This payment can't be refunded."
         Left NotFound -> next
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+newCustomerHandler :: Handler ()
+newCustomerHandler = do
+    -- Create a new customer with some metadata.
+    c <- withMollie $ createCustomer (newCustomer "Test customer" "test@example.com")
+        { newCustomer_metadata = Just $ object ["discount" .= True]
+        }
+
+    case c of
+        Right customer -> do
+            text $ TL.fromStrict $ "New customer created " <> customer_id customer <> " (" <> customer_name customer <> ")"
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
