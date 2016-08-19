@@ -40,6 +40,7 @@ main = do
         get "/return-page" returnPageHandler
         get "/ideal-payment" getIdealPaymentHandler
         post "/ideal-payment" postIdealPaymentHandler
+        get "/payments-history" paymentsHistoryHandler
         notFound (text "Page not found")
 
 withMollie :: Mollie a -> Handler a
@@ -180,4 +181,21 @@ postIdealPaymentHandler = do
             -- redirect the user to the checkout screen.
             let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
             redirect $ TL.fromStrict redirectUrl
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+paymentsHistoryHandler :: Handler ()
+paymentsHistoryHandler = do
+    -- Get the latest 25 payments.
+    p <- withMollie $ getPayments 0 25
+    case p of
+        Right paymentList -> do
+            -- Extract the payments from the list and display them.
+            let payments = list_data paymentList
+                paymentTag payment = li_ $ do
+                    (toHtmlRaw ("&euro;" :: Text))
+                    (toHtml $ payment_amount payment <> ", status: " <> (toText $ payment_status payment))
+
+            html $ renderText $ do
+                ul_ $ do
+                    mapM_ paymentTag payments
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
