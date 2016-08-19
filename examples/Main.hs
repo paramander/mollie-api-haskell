@@ -26,6 +26,8 @@ import           Mollie.API.Types
 import           Lucid.Base
 import           Lucid.Html5
 import           Mollie.API.Issuers
+-- list activated methods
+import           Mollie.API.Methods
 
 type Handler a = ActionT TL.Text (ReaderT Env IO) a
 
@@ -41,6 +43,7 @@ main = do
         get "/ideal-payment" getIdealPaymentHandler
         post "/ideal-payment" postIdealPaymentHandler
         get "/payments-history" paymentsHistoryHandler
+        get "/list-activated-methods" listActivatedMethodsHandler
         notFound (text "Page not found")
 
 withMollie :: Mollie a -> Handler a
@@ -198,4 +201,24 @@ paymentsHistoryHandler = do
             html $ renderText $ do
                 ul_ $ do
                     mapM_ paymentTag payments
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+listActivatedMethodsHandler :: Handler ()
+listActivatedMethodsHandler = do
+    -- Get the first 250 payment methods (there will probably be less).
+    -- In production you would want to check if there are more.
+    m <- withMollie $ getMethods "en" 0 250
+    case m of
+        Right methodList -> do
+            -- Extract all methods from the list and display them along
+            -- with the total amount of methods available.
+            let methods = list_data methodList
+                methodTag :: Method -> Html ()
+                methodTag method = div_ [ style_ "line-height:40px; vertical-align:top" ] $ do
+                    img_ [ src_ (methodImage_normal $ method_image method) ]
+                    p_ (toHtml $ method_description method <> " (" <> (toText $ method_id method) <> ")")
+
+            html $ renderText $ do
+                p_ (toHtml $ "Your API key has " <> (pack $ show $ list_totalCount methodList) <> " activated payment methods:")
+                mapM_ methodTag methods
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
