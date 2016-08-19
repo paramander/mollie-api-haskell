@@ -44,6 +44,7 @@ main = do
         post "/ideal-payment" postIdealPaymentHandler
         get "/payments-history" paymentsHistoryHandler
         get "/list-activated-methods" listActivatedMethodsHandler
+        get "/refund-payment" refundPaymentHandler
         notFound (text "Page not found")
 
 withMollie :: Mollie a -> Handler a
@@ -103,6 +104,7 @@ webhookVerificationHandler = do
 
             -- At this point we should simply return a 200 code.
             text "success"
+        Left NotFound -> next
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
 
 returnPageHandler :: Handler ()
@@ -230,4 +232,26 @@ listActivatedMethodsHandler = do
             html $ renderText $ do
                 p_ (toHtml $ "Your API key has " <> (pack $ show $ list_totalCount methodList) <> " activated payment methods:")
                 mapM_ methodTag methods
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+refundPaymentHandler :: Handler ()
+refundPaymentHandler = do
+    -- Get the payment by id.
+    paymentId <- param "payment_id"
+    p <- withMollie $ getPayment paymentId
+    case p of
+        Right payment -> do
+            -- Check if there is an amount remaining to refund. If there is
+            -- We refund it all. Otherwise we notify the user this payment
+            -- can't be refunded.
+            case payment_amountRemaining payment of
+                Just amount | (read $ unpack amount) > (0 :: Double) -> do
+                    r <- withMollie $ createPaymentRefund paymentId newRefund
+                        { newRefund_amount = Just $ read $ unpack amount
+                        }
+                    case r of
+                        Right _refund -> text "Payment refunded."
+                        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+                _ -> text "This payment can't be refunded."
+        Left NotFound -> next
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
