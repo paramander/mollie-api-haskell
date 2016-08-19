@@ -12,13 +12,15 @@ import           Web.Scotty.Trans
 -- new payment
 import           Data.Aeson
 import           Data.Monoid
-import           Data.UUID
-import           Data.UUID.V4
+import qualified Data.UUID            as UUID
+import qualified Data.UUID.V4         as UUID
 import           Mollie.API.Payments
 import           Network.Wai.Request
 -- webhook verification
 import qualified Data.HashMap.Strict  as HM
 import           System.Directory
+-- return page
+import           Mollie.API.Types
 
 type Handler a = ActionT TL.Text (ReaderT Env IO) a
 
@@ -41,7 +43,7 @@ withMollie query = do
 newPaymentHandler :: Handler ()
 newPaymentHandler = do
     -- Generate a unique identifier.
-    orderId <- fmap toText $ liftIO $ nextRandom
+    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
 
     -- Determine the url for these examples.
     hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
@@ -104,9 +106,10 @@ returnPageHandler = do
     fileExists <- liftIO $ doesFileExist filepath
     if fileExists
         then do
-            -- Read the status from the file as `String` and display it. In
-            -- production you would probably want to read it from a database
-            -- as an actual `PaymentStatus`.
-            paymentStatus <- liftIO $ readFile filepath
-            text $ "Payment status for your order: " <> TL.pack paymentStatus
+            -- Read the status from the file as `PaymentStatus` and display it.
+            -- In production you would probably want to read it from a database.
+            -- Note that the contents of the file are trusted and we do only
+            -- expect it to contain a valid `PaymentStatus`.
+            paymentStatus <- liftIO $ fmap read $ readFile filepath :: Handler PaymentStatus
+            text $ "Payment status for your order: " <> (TL.fromStrict $ toText paymentStatus)
         else text "Order not found."
