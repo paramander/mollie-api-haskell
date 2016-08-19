@@ -28,3 +28,4 @@ executable mollie-api-examples
                      , aeson
                      , unordered-containers
                      , directory
+                     , lucid
