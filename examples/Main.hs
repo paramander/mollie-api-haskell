@@ -159,7 +159,8 @@ postIdealPaymentHandler = do
     -- Determine the url for these examples.
     hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
 
-    -- Create the actual payment in Mollie.
+    -- Create the actual payment in Mollie, forcing the method
+    -- to iDEAL and settings the selected issuer.
     p <- withMollie $ createPayment
         (newPayment 27.50 "My first iDEAL payment" (hostUrl <> "/return-page?order_id=" <> orderId))
         { newPayment_webhookUrl = Just (hostUrl <> "/webhook-verification")
