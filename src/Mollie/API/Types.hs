@@ -6,7 +6,6 @@ module Mollie.API.Types where
 import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import qualified Data.Aeson.Types     as Aeson
-import qualified Data.ByteString.Lazy as ByteString
 import qualified Data.Text            as Text
 import qualified Data.Time            as Time
 
@@ -120,7 +119,7 @@ data NewPayment = NewPayment
     -- ^Set the amount in EURO to charge. Minimum based on available payment methods.
     , newPayment_description       :: Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
-    , newPayment_redirectUrl       :: Text.Text
+    , newPayment_redirectUrl       :: Maybe Text.Text
     -- ^Set the url the customer will be redirected to after the payment process.
     , newPayment_webhookUrl        :: Maybe Text.Text
     -- ^Set a specific webhook for this payment.
@@ -263,6 +262,8 @@ data Payment = Payment
     -- ^Identifier for the profile this payment was created on.
     , payment_customerId        :: Maybe Text.Text
     -- ^Identifier for the customer this payment was created for.
+    , payment_mandateId         :: Maybe Text.Text
+    -- ^Identifier for the mandate used for this payment if it's recurring.
     , payment_settlementId      :: Maybe Text.Text
     -- ^Identifier for the settlement this payment belongs to.
     , payment_links             :: PaymentLinks

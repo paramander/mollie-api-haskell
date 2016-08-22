@@ -4,6 +4,7 @@
 module Mollie.API.Payments
     ( paymentsPath
     , newPayment
+    , newRecurringPayment
     , createPayment
     , getPayment
     , getPayments
@@ -42,18 +43,34 @@ paymentsPath :: Text.Text
 paymentsPath = "payments"
 
 {-|
-  Helper to create a minimal new payment.
+  Helper to create a minimal new payment for normal use.
 -}
 newPayment :: Double -> Text.Text -> Text.Text -> NewPayment
-newPayment amount description redirectUrl = NewPayment
+newPayment amount description redirectUrl = (newRecurringPayment amount description)
+    { newPayment_redirectUrl       = Just redirectUrl
+    , newPayment_recurringType     = Nothing
+    }
+
+{-|
+  Helper to create a minimal new payment for recurring use.
+
+  A payment created with this helper should be sent with the
+  `createCustomerPayment` from `Mollie.API.Customers` or have
+  the customerId set.
+
+  For a first recurring payment use `newPayment` and set the
+  recurring type to `First`, because it needs a return url.
+-}
+newRecurringPayment :: Double -> Text.Text -> NewPayment
+newRecurringPayment amount description = NewPayment
     { newPayment_amount            = amount
     , newPayment_description       = description
-    , newPayment_redirectUrl       = redirectUrl
+    , newPayment_redirectUrl       = Nothing
     , newPayment_webhookUrl        = Nothing
     , newPayment_method            = Nothing
     , newPayment_metadata          = Nothing
     , newPayment_locale            = Nothing
-    , newPayment_recurringType     = Nothing
+    , newPayment_recurringType     = Just Recurring
     , newPayment_customerId        = Nothing
     , newPayment_issuer            = Nothing
     , newPayment_billingAddress    = Nothing
