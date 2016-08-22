@@ -28,7 +28,8 @@ issuersPath = "issuers"
 
   For more information see: https://www.mollie.com/en/docs/reference/issuers/get.
 -}
-getIssuer :: Text.Text -> Mollie (Either ResponseError Issuer)
+getIssuer :: Text.Text -- ^ issuerId
+          -> Mollie (Either ResponseError Issuer)
 getIssuer issuerId = get path
     where
         path = (Text.intercalate "/" [issuersPath, issuerId])
@@ -38,7 +39,9 @@ getIssuer issuerId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/issuers/list.
 -}
-getIssuers :: Int -> Int -> Mollie (Either ResponseError (List Issuer))
+getIssuers :: Int -- ^ offset
+           -> Int -- ^ count
+           -> Mollie (Either ResponseError (List Issuer))
 getIssuers offset count = get path
     where
         path = issuersPath <> query

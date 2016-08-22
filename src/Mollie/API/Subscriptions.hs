@@ -33,8 +33,14 @@ subscriptionsPath = "subscriptions"
 
 {-|
   Helper to create a minimal new subscription. Defaults to an ongoing subscription.
+
+  The interval is in human readable format and support the following values:
+  `1 day`/`n days`, `1 week`/`n weeks`, `1 month`/`n months` where n > 1.
 -}
-newSubscription :: Double -> Text.Text -> Text.Text -> NewSubscription
+newSubscription :: Double -- ^ amount
+                -> Text.Text -- ^ interval
+                -> Text.Text -- ^ description
+                -> NewSubscription
 newSubscription amount interval description = NewSubscription
     { newSubscription_amount      = amount
     , newSubscription_times       = Nothing
@@ -49,7 +55,8 @@ newSubscription amount interval description = NewSubscription
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
 -}
-createCustomerSubscription :: Text.Text -> NewSubscription -> Mollie (Either ResponseError Subscription)
+createCustomerSubscription :: Text.Text -- ^ customerId
+                           -> NewSubscription -> Mollie (Either ResponseError Subscription)
 createCustomerSubscription customerId newSubscription = do
     result <- send HTTP.methodPost path newSubscription
     return $ decodeResult result
@@ -61,7 +68,9 @@ createCustomerSubscription customerId newSubscription = do
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
 -}
-getCustomerSubscription :: Text.Text -> Text.Text -> Mollie (Either ResponseError Subscription)
+getCustomerSubscription :: Text.Text -- ^ customerId
+                        -> Text.Text -- ^ subscriptionId
+                        -> Mollie (Either ResponseError Subscription)
 getCustomerSubscription customerId subscriptionId = get path
     where
         path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath, subscriptionId]
@@ -71,7 +80,10 @@ getCustomerSubscription customerId subscriptionId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/list.
 -}
-getCustomerSubscriptions :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Subscription))
+getCustomerSubscriptions :: Text.Text -- ^ customerId
+                         -> Int -- ^ offset
+                         -> Int -- ^ count
+                         -> Mollie (Either ResponseError (List Subscription))
 getCustomerSubscriptions customerId offset count = get path
     where
         path = (Text.intercalate "/" [customersPath, customerId, subscriptionsPath]) <> query
@@ -82,7 +94,9 @@ getCustomerSubscriptions customerId offset count = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/delete.
 -}
-cancelCustomerSubscription :: Text.Text -> Text.Text -> Mollie (Either ResponseError Subscription)
+cancelCustomerSubscription :: Text.Text -- ^ customerId
+                           -> Text.Text -- ^ subscriptionId
+                           -> Mollie (Either ResponseError Subscription)
 cancelCustomerSubscription customerId subscriptionId = do
     result <- delete path
     return $ decodeResult result

@@ -45,7 +45,10 @@ paymentsPath = "payments"
 {-|
   Helper to create a minimal new payment for normal use.
 -}
-newPayment :: Double -> Text.Text -> Text.Text -> NewPayment
+newPayment :: Double -- ^ amount
+           -> Text.Text -- ^ description
+           -> Text.Text -- ^ redirectUrl
+           -> NewPayment
 newPayment amount description redirectUrl = (newRecurringPayment amount description)
     { newPayment_redirectUrl       = Just redirectUrl
     , newPayment_recurringType     = Nothing
@@ -61,7 +64,9 @@ newPayment amount description redirectUrl = (newRecurringPayment amount descript
   For a first recurring payment use `newPayment` and set the
   recurring type to `First`, because it needs a return url.
 -}
-newRecurringPayment :: Double -> Text.Text -> NewPayment
+newRecurringPayment :: Double -- ^ amount
+                    -> Text.Text -- ^ description
+                    -> NewPayment
 newRecurringPayment amount description = NewPayment
     { newPayment_amount            = amount
     , newPayment_description       = description
@@ -107,7 +112,8 @@ createPayment newPayment = do
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/get.
 -}
-getPayment :: Text.Text -> Mollie (Either ResponseError Payment)
+getPayment :: Text.Text -- ^ paymentId
+           -> Mollie (Either ResponseError Payment)
 getPayment paymentId = get path
     where
         path = Text.intercalate "/" [paymentsPath, paymentId]
@@ -117,7 +123,9 @@ getPayment paymentId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/list.
 -}
-getPayments :: Int -> Int -> Mollie (Either ResponseError (List Payment))
+getPayments :: Int -- ^ offset
+            -> Int -- ^ count
+            -> Mollie (Either ResponseError (List Payment))
 getPayments offset count = get path
     where
         path = paymentsPath <> query
@@ -137,7 +145,9 @@ newRefund = NewRefund
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
 -}
-createPaymentRefund :: Text.Text -> NewRefund -> Mollie (Either ResponseError Refund)
+createPaymentRefund :: Text.Text -- ^ paymentId
+                    -> NewRefund
+                    -> Mollie (Either ResponseError Refund)
 createPaymentRefund paymentId newRefund = do
     result <- send HTTP.methodPost path newRefund
     return $ decodeResult result
@@ -149,7 +159,9 @@ createPaymentRefund paymentId newRefund = do
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
 -}
-getPaymentRefund :: Text.Text -> Text.Text -> Mollie (Either ResponseError Refund)
+getPaymentRefund :: Text.Text -- ^ paymentId
+                 -> Text.Text -- ^ refundId
+                 -> Mollie (Either ResponseError Refund)
 getPaymentRefund paymentId refundId = get path
     where
         path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath, refundId]
@@ -161,7 +173,9 @@ getPaymentRefund paymentId refundId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/delete.
 -}
-cancelPaymentRefund :: Text.Text -> Text.Text -> Mollie (Maybe ResponseError)
+cancelPaymentRefund :: Text.Text -- ^ paymentId
+                    -> Text.Text -- ^ refundId
+                    -> Mollie (Maybe ResponseError)
 cancelPaymentRefund paymentId refundId = do
     result <- delete path
     return $ ignoreResult result
@@ -173,7 +187,10 @@ cancelPaymentRefund paymentId refundId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/list.
 -}
-getPaymentRefunds :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Refund))
+getPaymentRefunds :: Text.Text -- ^ paymentId
+                  -> Int -- ^ offset
+                  -> Int -- ^ count
+                  -> Mollie (Either ResponseError (List Refund))
 getPaymentRefunds paymentId offset count = get path
     where
         path = (Text.intercalate "/" [paymentsPath, paymentId, refundsPath]) <> query

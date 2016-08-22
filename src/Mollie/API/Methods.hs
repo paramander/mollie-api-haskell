@@ -32,7 +32,9 @@ methodsPath = "methods"
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/get.
 -}
-getMethod :: PaymentMethod -> Text.Text -> Mollie (Either ResponseError Method)
+getMethod :: PaymentMethod
+          -> Text.Text -- ^ locale
+          -> Mollie (Either ResponseError Method)
 getMethod methodId locale = get path
     where
         path = (Text.intercalate "/" [methodsPath, toText methodId]) <> query
@@ -43,7 +45,10 @@ getMethod methodId locale = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/list.
 -}
-getMethods :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Method))
+getMethods :: Text.Text -- ^ locale
+           -> Int -- ^ offset
+           -> Int -- ^ count
+           -> Mollie (Either ResponseError (List Method))
 getMethods locale offset count = get path
     where
         path = methodsPath <> query

@@ -27,7 +27,9 @@ refundsPath = "refunds"
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/list-all.
 -}
-getRefunds :: Int -> Int -> Mollie (Either ResponseError (List Refund))
+getRefunds :: Int -- ^ offset
+           -> Int -- ^ count
+           -> Mollie (Either ResponseError (List Refund))
 getRefunds offset count = get path
     where
         path = refundsPath <> query

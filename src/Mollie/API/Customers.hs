@@ -39,7 +39,9 @@ customersPath = "customers"
 {-|
   Helper to create a minimal new customer.
 -}
-newCustomer :: Text.Text -> Text.Text -> NewCustomer
+newCustomer :: Text.Text -- ^ name
+            -> Text.Text -- ^ email
+            -> NewCustomer
 newCustomer name email = NewCustomer
     { newCustomer_name     = name
     , newCustomer_email    = email
@@ -64,7 +66,8 @@ createCustomer newCustomer = do
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/get.
 -}
-getCustomer :: Text.Text -> Mollie (Either ResponseError Customer)
+getCustomer :: Text.Text -- ^ customerId
+            -> Mollie (Either ResponseError Customer)
 getCustomer customerId = get path
     where
         path = Text.intercalate "/" [customersPath, customerId]
@@ -74,7 +77,9 @@ getCustomer customerId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list.
 -}
-getCustomers :: Int -> Int -> Mollie (Either ResponseError (List Customer))
+getCustomers :: Int -- ^ offset
+             -> Int -- ^ count
+             -> Mollie (Either ResponseError (List Customer))
 getCustomers offset count = get path
     where
         path = customersPath <> query
@@ -85,7 +90,8 @@ getCustomers offset count = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
 -}
-createCustomerPayment :: Text.Text -> NewPayment -> Mollie (Either ResponseError Payment)
+createCustomerPayment :: Text.Text -- ^ customerId
+                      -> NewPayment -> Mollie (Either ResponseError Payment)
 createCustomerPayment customerId newPayment = do
     result <- send HTTP.methodPost path newPayment
     return $ decodeResult result
@@ -97,7 +103,10 @@ createCustomerPayment customerId newPayment = do
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list-payments.
 -}
-getCustomerPayments :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Payment))
+getCustomerPayments :: Text.Text -- ^ customerId
+                    -> Int -- ^ offset
+                    -> Int -- ^ count
+                    -> Mollie (Either ResponseError (List Payment))
 getCustomerPayments customerId offset count = get path
     where
         path = (Text.intercalate "/" [customersPath, customerId, paymentsPath]) <> query

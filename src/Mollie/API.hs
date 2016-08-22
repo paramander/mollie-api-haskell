@@ -19,7 +19,8 @@ import qualified Paths_mollie_api_haskell    as Self
 
   This key should start with either `test_` or `live_`.
 -}
-createEnv :: Text.Text -> IO Env
+createEnv :: Text.Text -- ^ key
+          -> IO Env
 createEnv key = HTTP.withOpenSSL $ do
     sslContext <- OpenSSL.context
     OpenSSL.contextSetVerificationMode sslContext OpenSSL.VerifyPeer

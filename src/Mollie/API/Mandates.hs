@@ -33,7 +33,10 @@ import qualified Network.HTTP.Types   as HTTP
 mandatesPath :: Text.Text
 mandatesPath = "mandates"
 
-newMandate :: PaymentMethod -> Text.Text -> Text.Text -> NewMandate
+newMandate :: PaymentMethod
+           -> Text.Text -- ^ consumerName
+           -> Text.Text -- ^ consumerAccount
+           -> NewMandate
 newMandate method consumerName consumerAccount = NewMandate
     { newMandate_method           = method
     , newMandate_consumerName     = consumerName
@@ -48,7 +51,8 @@ newMandate method consumerName consumerAccount = NewMandate
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
 -}
-createCustomerMandate :: Text.Text -> NewMandate -> Mollie (Either ResponseError Mandate)
+createCustomerMandate :: Text.Text -- ^ customerId
+                      -> NewMandate -> Mollie (Either ResponseError Mandate)
 createCustomerMandate customerId newMandate = do
     result <- send HTTP.methodPost path newMandate
     return $ decodeResult result
@@ -60,7 +64,9 @@ createCustomerMandate customerId newMandate = do
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
-getCustomerMandate :: Text.Text -> Text.Text -> Mollie (Either ResponseError Mandate)
+getCustomerMandate :: Text.Text -- ^ customerId
+                   -> Text.Text -- ^ mandateId
+                   -> Mollie (Either ResponseError Mandate)
 getCustomerMandate customerId mandateId = get path
     where
         path = Text.intercalate "/" [customersPath, customerId, mandatesPath, mandateId]
@@ -70,7 +76,10 @@ getCustomerMandate customerId mandateId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/list.
 -}
-getCustomerMandates :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Mandate))
+getCustomerMandates :: Text.Text -- ^ customerId
+                    -> Int -- ^ offset
+                    -> Int -- ^ count
+                    -> Mollie (Either ResponseError (List Mandate))
 getCustomerMandates customerId offset count = get path
     where
         path = (Text.intercalate "/" [customersPath, customerId, mandatesPath]) <> query
