@@ -10,26 +10,21 @@ import qualified Data.Text.Lazy       as TL
 import           Mollie.API
 import           System.Environment
 import           Web.Scotty.Trans
--- new payment
 import           Data.Aeson
-import           Data.Monoid
+import           Data.Monoid          hiding (First)
 import qualified Data.UUID            as UUID
 import qualified Data.UUID.V4         as UUID
 import           Mollie.API.Payments
 import           Network.Wai.Request
--- webhook verification
 import qualified Data.HashMap.Strict  as HM
 import           System.Directory
--- return page
 import           Mollie.API.Types
--- ideal payment
 import           Lucid.Base
 import           Lucid.Html5
 import           Mollie.API.Issuers
--- list activated methods
 import           Mollie.API.Methods
--- new customer
 import           Mollie.API.Customers
+import           Mollie.API.Subscriptions
 
 type Handler a = ActionT TL.Text (ReaderT Env IO) a
 
@@ -48,6 +43,12 @@ main = do
         get "/list-activated-methods" listActivatedMethodsHandler
         get "/refund-payment" refundPaymentHandler
         get "/new-customer" newCustomerHandler
+        get "/new-customer-payment" newCustomerPaymentHandler
+        get "/customer-payments-history" customerPaymentsHistoryHandler
+        get "/recurring-first-payment" recurringFirstPaymentHandler
+        get "/recurring-payment" recurringPaymentHandler
+        get "/recurring-subscription" recurringSubscriptionHandler
+        get "/cancel-subscription" cancelSubscriptionHandler
         notFound (text "Page not found")
 
 withMollie :: Mollie a -> Handler a
@@ -269,4 +270,190 @@ newCustomerHandler = do
     case c of
         Right customer -> do
             text $ TL.fromStrict $ "New customer created " <> customer_id customer <> " (" <> customer_name customer <> ")"
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+newCustomerPaymentHandler :: Handler ()
+newCustomerPaymentHandler = do
+    -- Generate a unique identifier.
+    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+
+    -- Determine the url for these examples.
+    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+
+    -- Create the actual payment in Mollie for the first customer.
+    -- Note that we are expecting there to be atleast one existing
+    -- customer and ignore any possibility of errors while requesting
+    -- that customer from the API.
+    p <- withMollie $ do
+        Right customerList <- getCustomers 0 1
+        let customerId = customer_id $ Prelude.head $ list_data customerList
+        createCustomerPayment customerId
+            (newPayment 10.00 "My first Customer payment" (hostUrl <> "/return-page?order_id=" <> orderId))
+            { newPayment_webhookUrl = Just (hostUrl <> "/webhook-verification")
+            , newPayment_metadata   = Just $ object ["order_id" .= orderId]
+            }
+
+    case p of
+        Right payment -> do
+            -- Write the status to a file. In production you should probably use a
+            -- database.
+            liftIO $ writeFile (unpack $ "./orders/order-" <> orderId <> ".txt") (show $ payment_status payment)
+
+            -- This payment should always have a redirect url as we did not create
+            -- a recurring payment. So we can savely pattern match on a `Just` and
+            -- redirect the user to the checkout screen.
+            let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
+            redirect $ TL.fromStrict redirectUrl
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+customerPaymentsHistoryHandler :: Handler ()
+customerPaymentsHistoryHandler = do
+    -- Retrieve the payment history for the first customer.
+    -- Note that we are expecting there to be atleast one existing
+    -- customer and ignore any possibility of errors while requesting
+    -- that customer from the API.
+    l <- withMollie $ do
+        Right customerList <- getCustomers 0 1
+        let customerId = customer_id $ Prelude.head $ list_data customerList
+        getCustomerPayments customerId 0 25
+
+    case l of
+        Right paymentList -> do
+            -- Extract the payments from the list and display them.
+            let payments = list_data paymentList
+                paymentTag :: Payment -> Html ()
+                paymentTag payment = tr_ $ do
+                    td_ (toHtml $ payment_id payment)
+                    td_ $ do
+                        (toHtmlRaw ("&euro;" :: Text))
+                        (toHtml $ payment_amount payment)
+                    td_ (toHtml $ toText $ payment_status payment)
+
+            html $ renderText $ do
+                table_ $ do
+                    thead_ $ tr_ $ do
+                        th_ "ID"
+                        th_ "Amount"
+                        th_ "Status"
+                    tbody_ $ do
+                        mapM_ paymentTag payments
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+recurringFirstPaymentHandler :: Handler ()
+recurringFirstPaymentHandler = do
+    -- Generate a unique identifier.
+    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+
+    -- Determine the url for these examples.
+    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+
+    -- Create the first recurring payment in Mollie for the first customer.
+    -- Note that we are expecting there to be atleast one existing
+    -- customer and ignore any possibility of errors while requesting
+    -- that customer from the API.
+    p <- withMollie $ do
+        Right customerList <- getCustomers 0 1
+        let customerId = customer_id $ Prelude.head $ list_data customerList
+        createCustomerPayment customerId
+            (newPayment 10.00 "A first recurring payment" (hostUrl <> "/return-page?order_id=" <> orderId))
+            { newPayment_webhookUrl    = Just (hostUrl <> "/webhook-verification")
+            , newPayment_metadata      = Just $ object ["order_id" .= orderId]
+            , newPayment_recurringType = Just First
+            }
+
+    case p of
+        Right payment -> do
+            -- Write the status to a file. In production you should probably use a
+            -- database.
+            liftIO $ writeFile (unpack $ "./orders/order-" <> orderId <> ".txt") (show $ payment_status payment)
+
+            -- This payment should always have a redirect url as we did not create
+            -- a recurring payment. So we can savely pattern match on a `Just` and
+            -- redirect the user to the checkout screen.
+            let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
+            redirect $ TL.fromStrict redirectUrl
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+recurringPaymentHandler :: Handler ()
+recurringPaymentHandler = do
+    -- Generate a unique identifier.
+    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+
+    -- Determine the url for these examples.
+    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+
+    -- Create the first recurring payment in Mollie for the first customer.
+    -- Note that we are expecting there to be atleast one existing
+    -- customer and ignore any possibility of errors while requesting
+    -- that customer from the API.
+    p <- withMollie $ do
+        Right customerList <- getCustomers 0 1
+        let customerId = customer_id $ Prelude.head $ list_data customerList
+        createCustomerPayment customerId
+            (newRecurringPayment 10.00 "An on-demand recurring payment")
+            { newPayment_webhookUrl    = Just (hostUrl <> "/webhook-verification")
+            , newPayment_metadata      = Just $ object ["order_id" .= orderId]
+            }
+
+    case p of
+        Right payment -> do
+            -- Write the status to a file. In production you should probably use a
+            -- database.
+            liftIO $ writeFile (unpack $ "./orders/order-" <> orderId <> ".txt") (show $ payment_status payment)
+
+            -- Because this is a recurring payment it should always have a mandate
+            -- id and a method.
+            let Just mandateId = payment_mandateId payment
+                Just method = payment_method payment
+
+            text $ TL.fromStrict ("Selected mandate is '" <> mandateId <> "' (" <> toText method <> ")")
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+recurringSubscriptionHandler :: Handler ()
+recurringSubscriptionHandler = do
+    -- Generate a unique identifier.
+    subscriptionId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+
+    -- Determine the url for these examples.
+    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+
+    -- Create the subscription in Mollie for the first customer.
+    -- Note that we are expecting there to be atleast one existing
+    -- customer with a valid mandate and ignore any possibility of
+    -- errors while requesting that customer from the API.
+    s <- withMollie $ do
+        Right customerList <- getCustomers 0 1
+        let customerId = customer_id $ Prelude.head $ list_data customerList
+        createCustomerSubscription customerId
+            (newSubscription 10.00 "1 month" "My subscription")
+            { newSubscription_times      = Just 12
+            , newSubscription_webhookUrl = Just (hostUrl <> "/webhook-subscription/" <> subscriptionId)
+            }
+
+    case s of
+        Right subscription -> do
+            html $ renderText $ do
+                p_ (toHtml $ "The subscription status: " <> (toText $ subscription_status subscription))
+                p_ $ do
+                    a_ [ href_ (hostUrl <> "/cancel-subscription?subscription_id=" <> subscription_id subscription)] "cancel subscription"
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+
+cancelSubscriptionHandler :: Handler ()
+cancelSubscriptionHandler = do
+    subscriptionId <- param "subscription_id"
+
+    -- Cancle the subscription for the first customer.
+    -- Note that we are expecting there to be atleast one existing
+    -- customer with a valid mandate and ignore any possibility of
+    -- errors while requesting that customer from the API.
+    s <- withMollie $ do
+        Right customerList <- getCustomers 0 1
+        let customerId = customer_id $ Prelude.head $ list_data customerList
+        cancelCustomerSubscription customerId subscriptionId
+
+    case s of
+        Right subscription -> do
+            html $ renderText $ do
+                p_ (toHtml $ "The subscription status: " <> (toText $ subscription_status subscription))
+        Left (ClientError 404 _) -> next
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
