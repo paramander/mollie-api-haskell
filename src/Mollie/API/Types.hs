@@ -734,16 +734,7 @@ $(Aeson.deriveFromJSON
     ''Subscription)
 
 {-|
-  Failures which could happen when requesting resources from Mollie.
--}
-data Failure
-    = RequestFailure Int ByteString.ByteString
-    | ParseFailure ByteString.ByteString
-    | NotFound
-    deriving (Show, Eq)
-
-{-|
-  Error data representations when needed for debugging.
+  Error data representations.
 
   For more information see: https://www.mollie.com/en/docs/errors.
 -}
@@ -782,3 +773,12 @@ $(Aeson.deriveFromJSON
         { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
         }
     ''Error)
+
+{-|
+  Response errors which could happen when requesting resources from Mollie.
+-}
+data ResponseError
+    = ClientError Int Error
+    | ServerError Int
+    | UnexpectedResponse
+    deriving (Show)

@@ -107,7 +107,7 @@ webhookVerificationHandler = do
 
             -- At this point we should simply return a 200 code.
             text "success"
-        Left NotFound -> next
+        Left (ClientError 404 _) -> next
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
 
 returnPageHandler :: Handler ()
@@ -256,7 +256,7 @@ refundPaymentHandler = do
                         Right _refund -> text "Payment refunded."
                         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
                 _ -> text "This payment can't be refunded."
-        Left NotFound -> next
+        Left (ClientError 404 _) -> next
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
 
 newCustomerHandler :: Handler ()

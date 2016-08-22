@@ -8,10 +8,9 @@ module Mollie.API.Refunds
     , Refund (..)
     , ListLinks (..)
     , List (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson          as Aeson
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
@@ -28,14 +27,8 @@ refundsPath = "refunds"
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/list-all.
 -}
-getRefunds :: Int -> Int -> Mollie (Either Failure (List Refund))
-getRefunds offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just refundList -> Right refundList
-            Nothing         -> Left $ ParseFailure rawBody
-        _   -> Left $ RequestFailure statusCode rawBody
+getRefunds :: Int -> Int -> Mollie (Either ResponseError (List Refund))
+getRefunds offset count = get path
     where
         path = refundsPath <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

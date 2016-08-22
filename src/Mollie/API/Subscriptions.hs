@@ -15,10 +15,9 @@ module Mollie.API.Subscriptions
     , Subscription (..)
     , ListLinks (..)
     , List (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson           as Aeson
 import           Data.Monoid
 import qualified Data.Text            as Text
 import           Mollie.API.Customers
@@ -50,15 +49,10 @@ newSubscription amount interval description = NewSubscription
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
 -}
-createCustomerSubscription :: Text.Text -> NewSubscription -> Mollie (Either Failure Subscription)
+createCustomerSubscription :: Text.Text -> NewSubscription -> Mollie (Either ResponseError Subscription)
 createCustomerSubscription customerId newSubscription = do
-    (statusCode, rawBody) <- send HTTP.methodPost path newSubscription
-    return $ case statusCode of
-        201 -> case Aeson.decode rawBody of
-            Just subscription -> Right subscription
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+    result <- send HTTP.methodPost path newSubscription
+    return $ decodeResult result
     where
         path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath]
 
@@ -67,15 +61,8 @@ createCustomerSubscription customerId newSubscription = do
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
 -}
-getCustomerSubscription :: Text.Text -> Text.Text -> Mollie (Either Failure Subscription)
-getCustomerSubscription customerId subscriptionId = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just subscription -> Right subscription
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomerSubscription :: Text.Text -> Text.Text -> Mollie (Either ResponseError Subscription)
+getCustomerSubscription customerId subscriptionId = get path
     where
         path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath, subscriptionId]
 
@@ -84,15 +71,8 @@ getCustomerSubscription customerId subscriptionId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/list.
 -}
-getCustomerSubscriptions :: Text.Text -> Int -> Int -> Mollie (Either Failure (List Subscription))
-getCustomerSubscriptions customerId offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just subscriptionList -> Right subscriptionList
-            Nothing         -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomerSubscriptions :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Subscription))
+getCustomerSubscriptions customerId offset count = get path
     where
         path = (Text.intercalate "/" [customersPath, customerId, subscriptionsPath]) <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
@@ -102,14 +82,9 @@ getCustomerSubscriptions customerId offset count = do
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/delete.
 -}
-cancelCustomerSubscription :: Text.Text -> Text.Text -> Mollie (Either Failure Subscription)
+cancelCustomerSubscription :: Text.Text -> Text.Text -> Mollie (Either ResponseError Subscription)
 cancelCustomerSubscription customerId subscriptionId = do
-    (statusCode, rawBody) <- delete path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just subscription -> Right subscription
-            Nothing           -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+    result <- delete path
+    return $ decodeResult result
     where
         path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath, subscriptionId]

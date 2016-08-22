@@ -9,10 +9,9 @@ module Mollie.API.Issuers
     , Issuer (..)
     , ListLinks (..)
     , List (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson          as Aeson
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
@@ -29,15 +28,8 @@ issuersPath = "issuers"
 
   For more information see: https://www.mollie.com/en/docs/reference/issuers/get.
 -}
-getIssuer :: Text.Text -> Mollie (Either Failure Issuer)
-getIssuer issuerId = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just issuer -> Right issuer
-            Nothing     -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _ -> Left $ RequestFailure statusCode rawBody
+getIssuer :: Text.Text -> Mollie (Either ResponseError Issuer)
+getIssuer issuerId = get path
     where
         path = (Text.intercalate "/" [issuersPath, issuerId])
 
@@ -46,14 +38,8 @@ getIssuer issuerId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/issuers/list.
 -}
-getIssuers :: Int -> Int -> Mollie (Either Failure (List Issuer))
-getIssuers offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just issuerList -> Right issuerList
-            Nothing     -> Left $ ParseFailure rawBody
-        _ -> Left $ RequestFailure statusCode rawBody
+getIssuers :: Int -> Int -> Mollie (Either ResponseError (List Issuer))
+getIssuers offset count = get path
     where
         path = issuersPath <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

@@ -17,10 +17,9 @@ module Mollie.API.Mandates
     , Mandate (..)
     , ListLinks (..)
     , List (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson           as Aeson
 import           Data.Monoid
 import qualified Data.Text            as Text
 import           Mollie.API.Customers
@@ -49,17 +48,10 @@ newMandate method consumerName consumerAccount = NewMandate
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
 -}
-createCustomerMandate :: Text.Text -> NewMandate -> Mollie (Either Failure Mandate)
+createCustomerMandate :: Text.Text -> NewMandate -> Mollie (Either ResponseError Mandate)
 createCustomerMandate customerId newMandate = do
-    (statusCode, rawBody) <- send HTTP.methodPost path newMandate
-    return $ case statusCode of
-        -- TODO: Docs say creates return 201 statusses but example shows 200 status.
-        --       This works but it would be nice to find the exact code we will receive.
-        code | elem code [200, 201] -> case Aeson.decode rawBody of
-            Just mandate -> Right mandate
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+    result <- send HTTP.methodPost path newMandate
+    return $ decodeResult result
     where
         path = Text.intercalate "/" [customersPath, customerId, mandatesPath]
 
@@ -68,15 +60,8 @@ createCustomerMandate customerId newMandate = do
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
-getCustomerMandate :: Text.Text -> Text.Text -> Mollie (Either Failure Mandate)
-getCustomerMandate customerId mandateId = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just mandate -> Right mandate
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomerMandate :: Text.Text -> Text.Text -> Mollie (Either ResponseError Mandate)
+getCustomerMandate customerId mandateId = get path
     where
         path = Text.intercalate "/" [customersPath, customerId, mandatesPath, mandateId]
 
@@ -85,15 +70,8 @@ getCustomerMandate customerId mandateId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/list.
 -}
-getCustomerMandates :: Text.Text -> Int -> Int -> Mollie (Either Failure (List Mandate))
-getCustomerMandates customerId offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just mandateList -> Right mandateList
-            Nothing         -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomerMandates :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Mandate))
+getCustomerMandates customerId offset count = get path
     where
         path = (Text.intercalate "/" [customersPath, customerId, mandatesPath]) <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

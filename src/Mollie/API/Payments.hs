@@ -25,10 +25,9 @@ module Mollie.API.Payments
     , NewRefund (..)
     , RefundStatus (..)
     , Refund (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson          as Aeson
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
@@ -79,14 +78,10 @@ newPayment amount description redirectUrl = NewPayment
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/create.
 -}
-createPayment :: NewPayment -> Mollie (Either Failure Payment)
+createPayment :: NewPayment -> Mollie (Either ResponseError Payment)
 createPayment newPayment = do
-    (statusCode, rawBody) <- send HTTP.methodPost path newPayment
-    return $ case statusCode of
-        201 -> case Aeson.decode rawBody of
-            Just payment -> Right payment
-            Nothing      -> Left $ ParseFailure rawBody
-        _   -> Left $ RequestFailure statusCode rawBody
+    result <- send HTTP.methodPost path newPayment
+    return $ decodeResult result
     where
         path = paymentsPath
 
@@ -95,15 +90,8 @@ createPayment newPayment = do
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/get.
 -}
-getPayment :: Text.Text -> Mollie (Either Failure Payment)
-getPayment paymentId = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just payment -> Right payment
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getPayment :: Text.Text -> Mollie (Either ResponseError Payment)
+getPayment paymentId = get path
     where
         path = Text.intercalate "/" [paymentsPath, paymentId]
 
@@ -112,14 +100,8 @@ getPayment paymentId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/list.
 -}
-getPayments :: Int -> Int -> Mollie (Either Failure (List Payment))
-getPayments offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just paymentList -> Right paymentList
-            Nothing      -> Left $ ParseFailure rawBody
-        _   -> Left $ RequestFailure statusCode rawBody
+getPayments :: Int -> Int -> Mollie (Either ResponseError (List Payment))
+getPayments offset count = get path
     where
         path = paymentsPath <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
@@ -138,15 +120,10 @@ newRefund = NewRefund
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
 -}
-createPaymentRefund :: Text.Text -> NewRefund -> Mollie (Either Failure Refund)
+createPaymentRefund :: Text.Text -> NewRefund -> Mollie (Either ResponseError Refund)
 createPaymentRefund paymentId newRefund = do
-    (statusCode, rawBody) <- send HTTP.methodPost path newRefund
-    return $ case statusCode of
-        201 -> case Aeson.decode rawBody of
-            Just refund -> Right refund
-            Nothing     -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+    result <- send HTTP.methodPost path newRefund
+    return $ decodeResult result
     where
         path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath]
 
@@ -155,15 +132,8 @@ createPaymentRefund paymentId newRefund = do
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
 -}
-getPaymentRefund :: Text.Text -> Text.Text -> Mollie (Either Failure Refund)
-getPaymentRefund paymentId refundId = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just refund -> Right refund
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getPaymentRefund :: Text.Text -> Text.Text -> Mollie (Either ResponseError Refund)
+getPaymentRefund paymentId refundId = get path
     where
         path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath, refundId]
 
@@ -174,13 +144,10 @@ getPaymentRefund paymentId refundId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/delete.
 -}
-cancelPaymentRefund :: Text.Text -> Text.Text -> Mollie (Maybe Failure)
+cancelPaymentRefund :: Text.Text -> Text.Text -> Mollie (Maybe ResponseError)
 cancelPaymentRefund paymentId refundId = do
-    (statusCode, rawBody) <- delete path
-    return $ case statusCode of
-        204 -> Nothing
-        404 -> Just NotFound
-        _   -> Just $ RequestFailure statusCode rawBody
+    result <- delete path
+    return $ ignoreResult result
     where
         path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath, refundId]
 
@@ -189,15 +156,8 @@ cancelPaymentRefund paymentId refundId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/list.
 -}
-getPaymentRefunds :: Text.Text -> Int -> Int -> Mollie (Either Failure (List Refund))
-getPaymentRefunds paymentId offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just refundList -> Right refundList
-            Nothing         -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getPaymentRefunds :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Refund))
+getPaymentRefunds paymentId offset count = get path
     where
         path = (Text.intercalate "/" [paymentsPath, paymentId, refundsPath]) <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

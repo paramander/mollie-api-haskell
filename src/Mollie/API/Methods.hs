@@ -11,10 +11,9 @@ module Mollie.API.Methods
     , Method (..)
     , ListLinks (..)
     , List (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson          as Aeson
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
@@ -33,15 +32,8 @@ methodsPath = "methods"
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/get.
 -}
-getMethod :: PaymentMethod -> Text.Text -> Mollie (Either Failure Method)
-getMethod methodId locale = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just method -> Right method
-            Nothing     -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _ -> Left $ RequestFailure statusCode rawBody
+getMethod :: PaymentMethod -> Text.Text -> Mollie (Either ResponseError Method)
+getMethod methodId locale = get path
     where
         path = (Text.intercalate "/" [methodsPath, toText methodId]) <> query
         query = "?locale=" <> locale
@@ -51,14 +43,8 @@ getMethod methodId locale = do
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/list.
 -}
-getMethods :: Text.Text -> Int -> Int -> Mollie (Either Failure (List Method))
-getMethods locale offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just refundList -> Right refundList
-            Nothing         -> Left $ ParseFailure rawBody
-        _   -> Left $ RequestFailure statusCode rawBody
+getMethods :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Method))
+getMethods locale offset count = get path
     where
         path = methodsPath <> query
         query = "?locale=" <> locale <> "&offset=" <> showT offset <> "&count=" <> showT count

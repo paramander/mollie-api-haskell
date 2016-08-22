@@ -20,10 +20,9 @@ module Mollie.API.Customers
     , PaymentLinks (..)
     , List (..)
     , ListLinks (..)
-    , Failure (..)
+    , ResponseError (..)
     ) where
 
-import qualified Data.Aeson          as Aeson
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
@@ -53,14 +52,10 @@ newCustomer name email = NewCustomer
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/create.
 -}
-createCustomer :: NewCustomer -> Mollie (Either Failure Customer)
+createCustomer :: NewCustomer -> Mollie (Either ResponseError Customer)
 createCustomer newCustomer = do
-    (statusCode, rawBody) <- send HTTP.methodPost path newCustomer
-    return $ case statusCode of
-        201 -> case Aeson.decode rawBody of
-            Just customer -> Right customer
-            Nothing       -> Left $ ParseFailure rawBody
-        _ -> Left $ RequestFailure statusCode rawBody
+    result <- send HTTP.methodPost path newCustomer
+    return $ decodeResult result
     where
         path = customersPath
 
@@ -69,15 +64,8 @@ createCustomer newCustomer = do
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/get.
 -}
-getCustomer :: Text.Text -> Mollie (Either Failure Customer)
-getCustomer customerId = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just customer -> Right customer
-            Nothing      -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomer :: Text.Text -> Mollie (Either ResponseError Customer)
+getCustomer customerId = get path
     where
         path = Text.intercalate "/" [customersPath, customerId]
 
@@ -86,14 +74,8 @@ getCustomer customerId = do
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list.
 -}
-getCustomers :: Int -> Int -> Mollie (Either Failure (List Customer))
-getCustomers offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just customerList -> Right customerList
-            Nothing         -> Left $ ParseFailure rawBody
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomers :: Int -> Int -> Mollie (Either ResponseError (List Customer))
+getCustomers offset count = get path
     where
         path = customersPath <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
@@ -103,15 +85,10 @@ getCustomers offset count = do
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
 -}
-createCustomerPayment :: Text.Text -> NewPayment -> Mollie (Either Failure Payment)
+createCustomerPayment :: Text.Text -> NewPayment -> Mollie (Either ResponseError Payment)
 createCustomerPayment customerId newPayment = do
-    (statusCode, rawBody) <- send HTTP.methodPost path newPayment
-    return $ case statusCode of
-        201 -> case Aeson.decode rawBody of
-            Just payment -> Right payment
-            Nothing     -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+    result <- send HTTP.methodPost path newPayment
+    return $ decodeResult result
     where
         path = Text.intercalate "/" [customersPath, customerId, paymentsPath]
 
@@ -120,15 +97,8 @@ createCustomerPayment customerId newPayment = do
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list-payments.
 -}
-getCustomerPayments :: Text.Text -> Int -> Int -> Mollie (Either Failure (List Payment))
-getCustomerPayments customerId offset count = do
-    (statusCode, rawBody) <- get path
-    return $ case statusCode of
-        200 -> case Aeson.decode rawBody of
-            Just paymentList -> Right paymentList
-            Nothing         -> Left $ ParseFailure rawBody
-        404 -> Left NotFound
-        _   -> Left $ RequestFailure statusCode rawBody
+getCustomerPayments :: Text.Text -> Int -> Int -> Mollie (Either ResponseError (List Payment))
+getCustomerPayments customerId offset count = get path
     where
         path = (Text.intercalate "/" [customersPath, customerId, paymentsPath]) <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
