@@ -12,7 +12,7 @@ import           Mollie.API.Internal
 import qualified Network.HTTP.Client         as HTTP
 import qualified Network.HTTP.Client.OpenSSL as HTTP
 import qualified OpenSSL.Session             as OpenSSL
-import qualified Paths_mollie_api_haskell    as Self
+-- import qualified Paths_mollie_api_haskell    as Self
 
 {-|
   Create a new Env from a Mollie API key.
@@ -23,13 +23,14 @@ createEnv :: Text.Text -- ^ key
           -> IO Env
 createEnv key = HTTP.withOpenSSL $ do
     sslContext <- OpenSSL.context
-    OpenSSL.contextSetVerificationMode sslContext OpenSSL.VerifyPeer
-        { OpenSSL.vpFailIfNoPeerCert = True
-        , OpenSSL.vpClientOnce       = False
-        , OpenSSL.vpCallback         = Nothing
-        }
-    cacert <- Self.getDataFileName "data/cacert.pem"
-    OpenSSL.contextSetCAFile sslContext cacert
+    -- TODO: re-enable cacert verification, disabled because it required the app to run on the build machine
+    -- OpenSSL.contextSetVerificationMode sslContext OpenSSL.VerifyPeer
+    --     { OpenSSL.vpFailIfNoPeerCert = True
+    --     , OpenSSL.vpClientOnce       = False
+    --     , OpenSSL.vpCallback         = Nothing
+    --     }
+    -- cacert <- Self.getDataFileName "data/cacert.pem"
+    -- OpenSSL.contextSetCAFile sslContext cacert
     manager <- HTTP.newManager . HTTP.opensslManagerSettings $ return sslContext
     return Env
         { env_key     = key
