@@ -2,6 +2,10 @@
 
 Accepting [iDEAL](https://www.mollie.com/ideal/), [Bancontact/Mister Cash](https://www.mollie.com/mistercash/), [SOFORT Banking](https://www.mollie.com/sofort/), [Creditcard](https://www.mollie.com/creditcard/), [SEPA Bank transfer](https://www.mollie.com/banktransfer), [SEPA Direct debit](https://www.mollie.com/directdebit/), [Bitcoin](https://www.mollie.com/bitcoin/), [PayPal](https://www.mollie.com/paypal/), [Belfius Direct Net](https://www.mollie.com/belfiusdirectnet/) and [paysafecard](https://www.mollie.com/paysafecard/) online payments without fixed monthly costs or any punishing registration procedures. Just use the Mollie API to receive payments directly on your website or easily refund transactions to your customers.
 
+## Notice
+
+Because of deployment issues with applications using this library the mollie root certificate check is disabled, the requests are however still preformed with secure connections! For more information or questions go to issue [#2](https://github.com/paramanders/mollie-api-haskell/issues/2).
+
 ## Requirements
 
 To use the Mollie API client, the following things are required:
