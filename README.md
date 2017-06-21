@@ -4,7 +4,7 @@ Accepting [iDEAL](https://www.mollie.com/ideal/), [Bancontact/Mister Cash](https
 
 ## Notice
 
-Because of deployment issues with applications using this library the mollie root certificate check is disabled, the requests are however still preformed with secure connections! For more information or questions go to issue [#2](https://github.com/paramanders/mollie-api-haskell/issues/2).
+Because of deployment issues with applications using this library the mollie root certificate check is disabled, the requests are however still preformed with secure connections! For more information or questions go to issue [#2](https://github.com/paramander/mollie-api-haskell/issues/2).
 
 ## Requirements
 
