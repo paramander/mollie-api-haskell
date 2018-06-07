@@ -28,7 +28,7 @@ library
   other-modules:       Mollie.API.Internal
                      , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
-                     , aeson >= 1.0 && < 1.1
+                     , aeson >= 1.0 && < 1.4
                      , time >= 1.5 && < 2
                      , text >= 1.2 && < 2
                      , http-client >= 0.5 && < 0.6
