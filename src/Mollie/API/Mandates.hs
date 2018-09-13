@@ -53,9 +53,8 @@ newMandate method consumerName consumerAccount = NewMandate
 -}
 createCustomerMandate :: Text.Text -- ^ customerId
                       -> NewMandate -> Mollie (Either ResponseError Mandate)
-createCustomerMandate customerId newMandate = do
-    result <- send HTTP.methodPost path newMandate
-    return $ decodeResult result
+createCustomerMandate customerId newMandate =
+    decodeResult <$> send HTTP.methodPost path newMandate
     where
         path = Text.intercalate "/" [customersPath, customerId, mandatesPath]
 
@@ -82,5 +81,5 @@ getCustomerMandates :: Text.Text -- ^ customerId
                     -> Mollie (Either ResponseError (List Mandate))
 getCustomerMandates customerId offset count = get path
     where
-        path = (Text.intercalate "/" [customersPath, customerId, mandatesPath]) <> query
+        path = Text.intercalate "/" [customersPath, customerId, mandatesPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

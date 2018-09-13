@@ -37,7 +37,7 @@ getMethod :: PaymentMethod
           -> Mollie (Either ResponseError Method)
 getMethod methodId locale = get path
     where
-        path = (Text.intercalate "/" [methodsPath, toText methodId]) <> query
+        path = Text.intercalate "/" [methodsPath, toText methodId] <> query
         query = "?locale=" <> locale
 
 {-|

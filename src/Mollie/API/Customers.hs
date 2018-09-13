@@ -55,9 +55,8 @@ newCustomer name email = NewCustomer
   For more information see: https://www.mollie.com/en/docs/reference/customers/create.
 -}
 createCustomer :: NewCustomer -> Mollie (Either ResponseError Customer)
-createCustomer newCustomer = do
-    result <- send HTTP.methodPost path newCustomer
-    return $ decodeResult result
+createCustomer newCustomer =
+    decodeResult <$> send HTTP.methodPost path newCustomer
     where
         path = customersPath
 
@@ -92,9 +91,8 @@ getCustomers offset count = get path
 -}
 createCustomerPayment :: Text.Text -- ^ customerId
                       -> NewPayment -> Mollie (Either ResponseError Payment)
-createCustomerPayment customerId newPayment = do
-    result <- send HTTP.methodPost path newPayment
-    return $ decodeResult result
+createCustomerPayment customerId newPayment =
+    decodeResult <$> send HTTP.methodPost path newPayment
     where
         path = Text.intercalate "/" [customersPath, customerId, paymentsPath]
 
@@ -109,5 +107,5 @@ getCustomerPayments :: Text.Text -- ^ customerId
                     -> Mollie (Either ResponseError (List Payment))
 getCustomerPayments customerId offset count = get path
     where
-        path = (Text.intercalate "/" [customersPath, customerId, paymentsPath]) <> query
+        path = Text.intercalate "/" [customersPath, customerId, paymentsPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

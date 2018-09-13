@@ -53,13 +53,13 @@ execute request = do
         (HTTP.responseBody response)
     where
         handleStatus status body
-            | elem status [200, 201, 204] =
+            | status `elem` [200, 201, 204] =
                   Right (status, body)
-            | elem status [400, 401, 403, 404, 405, 415, 422, 429] =
+            | status `elem` [400, 401, 403, 404, 405, 415, 422, 429] =
                   case Aeson.decode body of
                       Just err -> Left $ ClientError status err
                       Nothing  -> Left UnexpectedResponse
-            | elem status [500, 502, 503, 504] =
+            | status `elem` [500, 502, 503, 504] =
                   Left $ ServerError status
             | otherwise = Left UnexpectedResponse
 

@@ -57,9 +57,8 @@ newSubscription amount interval description = NewSubscription
 -}
 createCustomerSubscription :: Text.Text -- ^ customerId
                            -> NewSubscription -> Mollie (Either ResponseError Subscription)
-createCustomerSubscription customerId newSubscription = do
-    result <- send HTTP.methodPost path newSubscription
-    return $ decodeResult result
+createCustomerSubscription customerId newSubscription =
+    decodeResult <$> send HTTP.methodPost path newSubscription
     where
         path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath]
 
@@ -86,7 +85,7 @@ getCustomerSubscriptions :: Text.Text -- ^ customerId
                          -> Mollie (Either ResponseError (List Subscription))
 getCustomerSubscriptions customerId offset count = get path
     where
-        path = (Text.intercalate "/" [customersPath, customerId, subscriptionsPath]) <> query
+        path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
 
 {-|
@@ -97,8 +96,7 @@ getCustomerSubscriptions customerId offset count = get path
 cancelCustomerSubscription :: Text.Text -- ^ customerId
                            -> Text.Text -- ^ subscriptionId
                            -> Mollie (Either ResponseError Subscription)
-cancelCustomerSubscription customerId subscriptionId = do
-    result <- delete path
-    return $ decodeResult result
+cancelCustomerSubscription customerId subscriptionId =
+    decodeResult <$> delete path
     where
         path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath, subscriptionId]

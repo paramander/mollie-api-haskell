@@ -32,7 +32,7 @@ getIssuer :: Text.Text -- ^ issuerId
           -> Mollie (Either ResponseError Issuer)
 getIssuer issuerId = get path
     where
-        path = (Text.intercalate "/" [issuersPath, issuerId])
+        path = Text.intercalate "/" [issuersPath, issuerId]
 
 {-|
   Handler to get a list of issuers. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payment methods returned with a single call is 250.

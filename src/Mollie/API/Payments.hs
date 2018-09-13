@@ -101,9 +101,8 @@ newRecurringPayment amount description = NewPayment
   For more information see: https://www.mollie.com/en/docs/reference/payments/create.
 -}
 createPayment :: NewPayment -> Mollie (Either ResponseError Payment)
-createPayment newPayment = do
-    result <- send HTTP.methodPost path newPayment
-    return $ decodeResult result
+createPayment newPayment =
+    decodeResult <$> send HTTP.methodPost path newPayment
     where
         path = paymentsPath
 
@@ -148,9 +147,8 @@ newRefund = NewRefund
 createPaymentRefund :: Text.Text -- ^ paymentId
                     -> NewRefund
                     -> Mollie (Either ResponseError Refund)
-createPaymentRefund paymentId newRefund = do
-    result <- send HTTP.methodPost path newRefund
-    return $ decodeResult result
+createPaymentRefund paymentId newRefund =
+    decodeResult <$> send HTTP.methodPost path newRefund
     where
         path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath]
 
@@ -176,9 +174,8 @@ getPaymentRefund paymentId refundId = get path
 cancelPaymentRefund :: Text.Text -- ^ paymentId
                     -> Text.Text -- ^ refundId
                     -> Mollie (Maybe ResponseError)
-cancelPaymentRefund paymentId refundId = do
-    result <- delete path
-    return $ ignoreResult result
+cancelPaymentRefund paymentId refundId =
+    ignoreResult <$> delete path
     where
         path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath, refundId]
 
@@ -193,5 +190,5 @@ getPaymentRefunds :: Text.Text -- ^ paymentId
                   -> Mollie (Either ResponseError (List Refund))
 getPaymentRefunds paymentId offset count = get path
     where
-        path = (Text.intercalate "/" [paymentsPath, paymentId, refundsPath]) <> query
+        path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
