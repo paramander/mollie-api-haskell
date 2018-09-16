@@ -31,7 +31,7 @@ data Amount = Amount
     -- ^An ISO 4217 currency code. The currencies supported depend on the payment methods that are enabled on your account.
     , amount_value    :: Text.Text
     -- ^A string containing the exact amount you want to charge in the given currency. Make sure to send the right amount of decimals
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 {-|
   Creates a Mollie amount given a Double
@@ -311,7 +311,7 @@ data Payment = Payment
     -- ^The identifier referring to the settlement this payment was settled with.
     , payment_customerId        :: Maybe Text.Text
     -- ^Identifier for the customer this payment was created for.
-    , payment_sequenceType      :: SequenceType
+    , payment_sequenceType      :: Maybe SequenceType
     -- ^Indicates which type of payment this is in a recurring sequence. Set to oneoff by default.
     , payment_mandateId         :: Maybe Text.Text
     -- ^Identifier for the mandate used for this payment if it's recurring.
@@ -369,8 +369,8 @@ instance Aeson.FromJSON a => Aeson.FromJSON (List a) where
         <$> Aeson.parseField v "count"
         <*> fmap elems (Aeson.parseField v "_embedded")
         <*> Aeson.parseField v "_links"
-        where elems :: HashMap.HashMap Text.Text a -> [a]
-              elems = HashMap.elems . trace "hoi"
+        where elems :: HashMap.HashMap Text.Text [a] -> [a]
+              elems = concat . HashMap.elems
     parseJSON invalid = Aeson.typeMismatch "Not a correct embed for a list" invalid
 
 {-|
@@ -653,13 +653,11 @@ data Mandate = Mandate
     -- ^The status of the mandate.
     , mandate_method           :: PaymentMethod
     -- ^The payment method of the mandate.
-    , mandate_customerId       :: Text.Text
-    -- ^The reference to the customer this mandate is assigned to.
     , mandate_details          :: Maybe MandateDetails
     -- ^The mandate details.
-    , mandate_mandateReference :: Text.Text
+    , mandate_mandateReference :: Maybe Text.Text
     -- ^The custom reference set for this mandate.
-    , mandate_signatureDate    :: Text.Text
+    , mandate_signatureDate    :: Maybe Text.Text
     -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
     , mandate_createdAt        :: Time.UTCTime
     -- ^The date on which this mandate was created.
@@ -731,8 +729,6 @@ $(Aeson.deriveFromJSON
 data Subscription = Subscription
     { subscription_id                :: Text.Text
     -- ^Mollies reference to the subscription.
-    , subscription_customerId        :: Text.Text
-    -- ^The reference to the customer this subscription was made for.
     , subscription_mode              :: Mode
     -- ^The mode used to create this subscription
     , subscription_createdAt         :: Time.UTCTime
@@ -745,14 +741,14 @@ data Subscription = Subscription
     -- ^The total number or charges for the subscription to complete.
     , subscription_interval          :: Text.Text
     -- ^The interval to wait between charges.
-    , subscription_startDate         :: Text.Text
+    , subscription_startDate         :: Maybe Text.Text
     -- ^Set the start date of the subscription in YYYY-MM-DD format.
     , subscription_description       :: Text.Text
     -- ^The description for the payments made with this subscription.
     , subscription_method            :: Maybe PaymentMethod
     -- ^The payment method used for this subscription.
-    , subscription_cancelledAt       :: Maybe Time.UTCTime
-    -- ^The date on which this subscription was cancelled.
+    , subscription_canceledAt        :: Maybe Time.UTCTime
+    -- ^The date on which this subscription was canceled.
     , subscription_webhookUrl        :: Maybe Text.Text
     -- ^The URL Mollie will call as soon a payment status change takes place.
     }

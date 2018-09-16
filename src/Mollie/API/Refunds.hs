@@ -4,6 +4,7 @@ module Mollie.API.Refunds
     ( refundsPath
     , getRefunds
     -- Re-export relevant types
+    , Amount (..)
     , RefundStatus (..)
     , Refund (..)
     , ListLinks (..)

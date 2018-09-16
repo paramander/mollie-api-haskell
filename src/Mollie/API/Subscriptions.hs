@@ -8,8 +8,10 @@ module Mollie.API.Subscriptions
     , getCustomerSubscriptions
     , cancelCustomerSubscription
     -- Re-export relevant types
+    , Amount (..)
     , PaymentMethod (..)
     , NewSubscription (..)
+    , Mode (..)
     , SubscriptionStatus (..)
     , Subscription (..)
     , ListLinks (..)

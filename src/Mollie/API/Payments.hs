@@ -14,6 +14,7 @@ module Mollie.API.Payments
     , cancelPaymentRefund
     , getPaymentRefunds
     -- Re-export relevant types
+    , Amount (..)
     , PaymentStatus (..)
     , PaymentMethod (..)
     , SequenceType (..)
