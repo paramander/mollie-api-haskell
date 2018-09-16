@@ -15,7 +15,7 @@
         "times": 4,
         "interval": "3 months",
         "description": "Quarterly payment",
-        "method": null,
+        "method": "creditcard",
         "webhookUrl": "https://webshop.example.org/subscriptions/webhook",
         "_links": {
           "self": {
