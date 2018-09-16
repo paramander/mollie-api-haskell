@@ -16,10 +16,9 @@ module Mollie.API.Payments
     -- Re-export relevant types
     , PaymentStatus (..)
     , PaymentMethod (..)
-    , RecurringType (..)
+    , SequenceType (..)
     , NewPayment (..)
     , Mode (..)
-    , PaymentLinks (..)
     , Payment (..)
     , ListLinks (..)
     , List (..)
@@ -51,7 +50,7 @@ newPayment :: Double -- ^ amount
            -> NewPayment
 newPayment amount description redirectUrl = (newRecurringPayment amount description)
     { newPayment_redirectUrl       = Just redirectUrl
-    , newPayment_recurringType     = Nothing
+    , newPayment_sequenceType      = Just Oneoff
     }
 
 {-|
@@ -68,26 +67,19 @@ newRecurringPayment :: Double -- ^ amount
                     -> Text.Text -- ^ description
                     -> NewPayment
 newRecurringPayment amount description = NewPayment
-    { newPayment_amount            = amount
+    { newPayment_amount            = defaultAmount amount
     , newPayment_description       = description
     , newPayment_redirectUrl       = Nothing
     , newPayment_webhookUrl        = Nothing
     , newPayment_method            = Nothing
     , newPayment_metadata          = Nothing
     , newPayment_locale            = Nothing
-    , newPayment_recurringType     = Just Recurring
+    , newPayment_sequenceType      = Just Recurring
     , newPayment_customerId        = Nothing
+    , newPayment_mandateId         = Nothing
     , newPayment_issuer            = Nothing
     , newPayment_billingAddress    = Nothing
-    , newPayment_billingCity       = Nothing
-    , newPayment_billingRegion     = Nothing
-    , newPayment_billingPostal     = Nothing
-    , newPayment_billingCountry    = Nothing
     , newPayment_shippingAddress   = Nothing
-    , newPayment_shippingCity      = Nothing
-    , newPayment_shippingRegion    = Nothing
-    , newPayment_shippingPostal    = Nothing
-    , newPayment_shippingCountry   = Nothing
     , newPayment_billingEmail      = Nothing
     , newPayment_dueDate           = Nothing
     , newPayment_consumerName      = Nothing
@@ -122,13 +114,13 @@ getPayment paymentId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/list.
 -}
-getPayments :: Int -- ^ offset
-            -> Int -- ^ count
+getPayments :: Int -- ^ from
+            -> Int -- ^ limit
             -> Mollie (Either ResponseError (List Payment))
-getPayments offset count = get path
+getPayments from limit = get path
     where
         path = paymentsPath <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        query = "?from=" <> showT from <> "&limit=" <> showT limit
 
 {-|
   Helper to create a minimal new refund. Defaults to refunding the total amount for the targetted payment.

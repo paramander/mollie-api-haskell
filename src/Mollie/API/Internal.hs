@@ -26,10 +26,10 @@ data Env = Env
 type Mollie a = Reader.ReaderT Env IO a
 
 endpoint :: Text.Text
-endpoint = "https://api.mollie.nl"
+endpoint = "https://api.mollie.com"
 
 version :: Text.Text
-version = "v1"
+version = "v2"
 
 showT :: (Show a) => a -> Text.Text
 showT = Text.pack . show
@@ -53,15 +53,15 @@ execute request = do
         (HTTP.responseBody response)
     where
         handleStatus status body
-            | status `elem` [200, 201, 204] =
+            | elem status [200, 201, 204] =
                   Right (status, body)
-            | status `elem` [400, 401, 403, 404, 405, 415, 422, 429] =
-                  case Aeson.decode body of
-                      Just err -> Left $ ClientError status err
-                      Nothing  -> Left UnexpectedResponse
-            | status `elem` [500, 502, 503, 504] =
+            | elem status [400, 401, 403, 404, 405, 415, 422, 429] =
+                  case Aeson.eitherDecode body of
+                      Right err -> Left $ ClientError status err
+                      Left decodeFailure -> Left $ UnexpectedResponse (Text.pack decodeFailure)
+            | elem status [500, 502, 503, 504] =
                   Left $ ServerError status
-            | otherwise = Left UnexpectedResponse
+            | otherwise = Left $ UnexpectedResponse (Text.pack "Unhandled statuscode")
 
 send :: (Aeson.ToJSON a)
      => HTTP.Method
@@ -99,7 +99,7 @@ decodeResult :: (Aeson.FromJSON a)
              -> Either ResponseError a
 decodeResult result = case result of
     Right (_, body) ->
-        case Aeson.decode body of
-            Just resource -> Right resource
-            Nothing       -> Left UnexpectedResponse
+        case Aeson.eitherDecode body of
+            Right resource -> Right resource
+            Left error     -> Left $ UnexpectedResponse (Text.pack error)
     Left other -> Left other

@@ -3,7 +3,8 @@ resolver: lts-11.12
 packages:
 - '.'
 
-extra-deps: []
+extra-deps:
+  - currency-codes-3.0.0.1
 
 # Override default flag values for local packages and extra-deps
 flags: {}

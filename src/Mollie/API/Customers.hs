@@ -14,10 +14,9 @@ module Mollie.API.Customers
     , Mode (..)
     , PaymentStatus (..)
     , PaymentMethod (..)
-    , RecurringType (..)
+    , SequenceType (..)
     , NewPayment (..)
     , Payment (..)
-    , PaymentLinks (..)
     , List (..)
     , ListLinks (..)
     , ResponseError (..)
@@ -43,8 +42,8 @@ newCustomer :: Text.Text -- ^ name
             -> Text.Text -- ^ email
             -> NewCustomer
 newCustomer name email = NewCustomer
-    { newCustomer_name     = name
-    , newCustomer_email    = email
+    { newCustomer_name     = Just name
+    , newCustomer_email    = Just email
     , newCustomer_locale   = Nothing
     , newCustomer_metadata = Nothing
     }

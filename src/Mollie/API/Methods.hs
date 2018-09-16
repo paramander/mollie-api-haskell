@@ -6,7 +6,6 @@ module Mollie.API.Methods
     , getMethods
     -- Re-export relevant types
     , PaymentMethod (..)
-    , MethodAmount (..)
     , MethodImage (..)
     , Method (..)
     , ListLinks (..)

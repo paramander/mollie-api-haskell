@@ -11,7 +11,6 @@ module Mollie.API.Subscriptions
     , PaymentMethod (..)
     , NewSubscription (..)
     , SubscriptionStatus (..)
-    , SubscriptionLinks (..)
     , Subscription (..)
     , ListLinks (..)
     , List (..)
@@ -42,10 +41,11 @@ newSubscription :: Double -- ^ amount
                 -> Text.Text -- ^ description
                 -> NewSubscription
 newSubscription amount interval description = NewSubscription
-    { newSubscription_amount      = amount
+    { newSubscription_amount      = defaultAmount amount
     , newSubscription_times       = Nothing
     , newSubscription_interval    = interval
     , newSubscription_description = description
+    , newSubscription_startDate   = Nothing
     , newSubscription_method      = Nothing
     , newSubscription_webhookUrl  = Nothing
     }

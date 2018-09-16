@@ -4,6 +4,7 @@
 module Main where
 
 import           Control.Monad.Reader
+import           Data.Maybe (fromMaybe)
 import           Data.Text            as Text
 import           Data.Text.Encoding
 import qualified Data.Text.Lazy       as TL
@@ -30,7 +31,7 @@ type Handler a = ActionT TL.Text (ReaderT Env IO) a
 
 main :: IO ()
 main = do
-    mollieKey <- fmap pack $ getEnv "MOLLIE_API_KEY"
+    mollieKey <- pack <$> getEnv "MOLLIE_API_KEY"
     mollieEnv <- createEnv mollieKey
     let r m = runReaderT m mollieEnv
     scottyT 3000 r $ do
@@ -53,22 +54,21 @@ main = do
 
 withMollie :: Mollie a -> Handler a
 withMollie query = do
-    mollieEnv <- lift $ ask
+    mollieEnv <- lift ask
     liftIO $ runMollie mollieEnv query
 
 newPaymentHandler :: Handler ()
 newPaymentHandler = do
     -- Generate a unique identifier.
-    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+    orderId <- UUID.toText <$> liftIO UUID.nextRandom
 
     -- Determine the url for these examples.
-    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+    hostUrl <- fmap (decodeUtf8 . guessApproot) request
 
     -- Create the actual payment in Mollie.
     p <- withMollie $ createPayment
         (newPayment 10.00 "My first API payment" (hostUrl <> "/return-page?order_id=" <> orderId))
-        { newPayment_webhookUrl = Just (hostUrl <> "/webhook-verification")
-        , newPayment_metadata   = Just $ object ["order_id" .= orderId]
+        { newPayment_metadata   = Just $ object ["order_id" .= orderId]
         }
 
     case p of
@@ -80,9 +80,9 @@ newPaymentHandler = do
             -- This payment should always have a redirect url as we did not create
             -- a recurring payment. So we can savely pattern match on a `Just` and
             -- redirect the user to the checkout screen.
-            let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
+            let Just redirectUrl = payment_redirectUrl payment
             redirect $ TL.fromStrict redirectUrl
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 webhookVerificationHandler :: Handler ()
 webhookVerificationHandler = do
@@ -109,7 +109,7 @@ webhookVerificationHandler = do
             -- At this point we should simply return a 200 code.
             text "success"
         Left (ClientError 404 _) -> next
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 returnPageHandler :: Handler ()
 returnPageHandler = do
@@ -127,8 +127,8 @@ returnPageHandler = do
             -- In production you would probably want to read it from a database.
             -- Note that the contents of the file are trusted and we do only
             -- expect it to contain a valid `PaymentStatus`.
-            paymentStatus <- liftIO $ fmap read $ readFile filepath :: Handler PaymentStatus
-            text $ "Payment status for your order: " <> (TL.fromStrict $ toText paymentStatus)
+            paymentStatus <- liftIO $ read <$> readFile filepath :: Handler PaymentStatus
+            text $ "Payment status for your order: " <> TL.fromStrict (toText paymentStatus)
         else text "Order not found."
 
 getIdealPaymentHandler :: Handler ()
@@ -139,21 +139,21 @@ getIdealPaymentHandler = do
     case i of
         Right issuersList -> do
             -- Extract all ideal issuers for the list and display them in a form.
-            let issuers = list_data issuersList
+            let issuers = list__embedded issuersList
                 idealIssuers = Prelude.filter ((==) Ideal . issuer_method) issuers
                 optionTag :: Issuer -> Html ()
                 optionTag issuer = option_
                     [ value_ (issuer_id issuer) ]
                     (toHtml $ issuer_name issuer)
 
-            html $ renderText $ do
+            html $ renderText $
                 form_ [ method_ "post" ] $ do
                     label_ "Select your bank:"
                     select_ [ name_ "issuer" ] $ do
                         mapM_ optionTag idealIssuers
                         option_ [ value_ "" ] "or select later"
                     button_ "OK"
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 postIdealPaymentHandler :: Handler ()
 postIdealPaymentHandler = do
@@ -164,17 +164,16 @@ postIdealPaymentHandler = do
     let issuer = if Text.null i then Nothing else Just i
 
     -- Generate a unique identifier.
-    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+    orderId <- UUID.toText <$> liftIO UUID.nextRandom
 
     -- Determine the url for these examples.
-    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+    hostUrl <- fmap (decodeUtf8 . guessApproot) request
 
     -- Create the actual payment in Mollie, forcing the method
     -- to iDEAL and settings the selected issuer.
     p <- withMollie $ createPayment
         (newPayment 27.50 "My first iDEAL payment" (hostUrl <> "/return-page?order_id=" <> orderId))
-        { newPayment_webhookUrl = Just (hostUrl <> "/webhook-verification")
-        , newPayment_metadata   = Just $ object ["order_id" .= orderId]
+        { newPayment_metadata   = Just $ object ["order_id" .= orderId]
         , newPayment_method     = Just Ideal
         , newPayment_issuer     = issuer
         }
@@ -188,9 +187,9 @@ postIdealPaymentHandler = do
             -- This payment should always have a redirect url as we did not create
             -- a recurring payment. So we can savely pattern match on a `Just` and
             -- redirect the user to the checkout screen.
-            let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
+            let Just redirectUrl = payment_redirectUrl payment
             redirect $ TL.fromStrict redirectUrl
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 paymentsHistoryHandler :: Handler ()
 paymentsHistoryHandler = do
@@ -199,24 +198,24 @@ paymentsHistoryHandler = do
     case p of
         Right paymentList -> do
             -- Extract the payments from the list and display them.
-            let payments = list_data paymentList
+            let payments = list__embedded paymentList
                 paymentTag :: Payment -> Html ()
                 paymentTag payment = tr_ $ do
                     td_ (toHtml $ payment_id payment)
                     td_ $ do
                         (toHtmlRaw ("&euro;" :: Text))
-                        (toHtml $ payment_amount payment)
+                        (toHtml $ amount_value $ payment_amount payment)
                     td_ (toHtml $ toText $ payment_status payment)
 
-            html $ renderText $ do
+            html $ renderText $
                 table_ $ do
                     thead_ $ tr_ $ do
                         th_ "ID"
                         th_ "Amount"
                         th_ "Status"
-                    tbody_ $ do
+                    tbody_ $
                         mapM_ paymentTag payments
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 listActivatedMethodsHandler :: Handler ()
 listActivatedMethodsHandler = do
@@ -227,16 +226,16 @@ listActivatedMethodsHandler = do
         Right methodList -> do
             -- Extract all methods from the list and display them along
             -- with the total amount of methods available.
-            let methods = list_data methodList
+            let methods = list__embedded methodList
                 methodTag :: Method -> Html ()
-                methodTag method = div_ [ style_ "line-height:40px; vertical-align:top" ] $ do
-                    img_ [ src_ (methodImage_normal $ method_image method) ]
-                    p_ (toHtml $ method_description method <> " (" <> (toText $ method_id method) <> ")")
+                methodTag method = div_ [ style_ "line-height:32px; vertical-align:top" ] $ do
+                    img_ [ src_ (methodImage_size1x $ method_image method) ]
+                    p_ (toHtml $ method_description method <> " (" <> toText (method_id method) <> ")")
 
             html $ renderText $ do
-                p_ (toHtml $ "Your API key has " <> (pack $ show $ list_totalCount methodList) <> " activated payment methods:")
+                p_ (toHtml $ "Your API key has " <> pack (show $ list_count methodList) <> " activated payment methods:")
                 mapM_ methodTag methods
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 refundPaymentHandler :: Handler ()
 refundPaymentHandler = do
@@ -244,21 +243,21 @@ refundPaymentHandler = do
     paymentId <- param "payment_id"
     p <- withMollie $ getPayment paymentId
     case p of
-        Right payment -> do
+        Right payment ->
             -- Check if there is an amount remaining to refund. If there is
             -- We refund it all. Otherwise we notify the user this payment
             -- can't be refunded.
             case payment_amountRemaining payment of
-                Just amount | (read $ unpack amount) > (0 :: Double) -> do
+                Just amount | read (unpack $ amount_value amount) > (0 :: Double) -> do
                     r <- withMollie $ createPaymentRefund paymentId newRefund
-                        { newRefund_amount = Just $ read $ unpack amount
+                        { newRefund_amount = Just amount
                         }
                     case r of
                         Right _refund -> text "Payment refunded."
-                        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+                        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
                 _ -> text "This payment can't be refunded."
         Left (ClientError 404 _) -> next
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 newCustomerHandler :: Handler ()
 newCustomerHandler = do
@@ -268,17 +267,17 @@ newCustomerHandler = do
         }
 
     case c of
-        Right customer -> do
-            text $ TL.fromStrict $ "New customer created " <> customer_id customer <> " (" <> customer_name customer <> ")"
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Right customer ->
+            text $ TL.fromStrict $ "New customer created " <> customer_id customer <> " (" <> fromMaybe ("" :: Text.Text) (customer_name customer) <> ")"
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 newCustomerPaymentHandler :: Handler ()
 newCustomerPaymentHandler = do
     -- Generate a unique identifier.
-    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+    orderId <- UUID.toText <$> liftIO UUID.nextRandom
 
     -- Determine the url for these examples.
-    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+    hostUrl <- fmap (decodeUtf8 . guessApproot) request
 
     -- Create the actual payment in Mollie for the first customer.
     -- Note that we are expecting there to be atleast one existing
@@ -286,11 +285,10 @@ newCustomerPaymentHandler = do
     -- that customer from the API.
     p <- withMollie $ do
         Right customerList <- getCustomers 0 1
-        let customerId = customer_id $ Prelude.head $ list_data customerList
+        let customerId = customer_id $ Prelude.head $ list__embedded customerList
         createCustomerPayment customerId
             (newPayment 10.00 "My first Customer payment" (hostUrl <> "/return-page?order_id=" <> orderId))
-            { newPayment_webhookUrl = Just (hostUrl <> "/webhook-verification")
-            , newPayment_metadata   = Just $ object ["order_id" .= orderId]
+            { newPayment_metadata   = Just $ object ["order_id" .= orderId]
             }
 
     case p of
@@ -302,9 +300,9 @@ newCustomerPaymentHandler = do
             -- This payment should always have a redirect url as we did not create
             -- a recurring payment. So we can savely pattern match on a `Just` and
             -- redirect the user to the checkout screen.
-            let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
+            let Just redirectUrl = payment_redirectUrl payment
             redirect $ TL.fromStrict redirectUrl
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 customerPaymentsHistoryHandler :: Handler ()
 customerPaymentsHistoryHandler = do
@@ -314,19 +312,19 @@ customerPaymentsHistoryHandler = do
     -- that customer from the API.
     l <- withMollie $ do
         Right customerList <- getCustomers 0 1
-        let customerId = customer_id $ Prelude.head $ list_data customerList
+        let customerId = customer_id $ Prelude.head $ list__embedded customerList
         getCustomerPayments customerId 0 25
 
     case l of
         Right paymentList -> do
             -- Extract the payments from the list and display them.
-            let payments = list_data paymentList
+            let payments = list__embedded paymentList
                 paymentTag :: Payment -> Html ()
                 paymentTag payment = tr_ $ do
                     td_ (toHtml $ payment_id payment)
                     td_ $ do
                         (toHtmlRaw ("&euro;" :: Text))
-                        (toHtml $ payment_amount payment)
+                        (toHtml $ amount_value $ payment_amount payment)
                     td_ (toHtml $ toText $ payment_status payment)
 
             html $ renderText $ do
@@ -337,15 +335,15 @@ customerPaymentsHistoryHandler = do
                         th_ "Status"
                     tbody_ $ do
                         mapM_ paymentTag payments
-        Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 recurringFirstPaymentHandler :: Handler ()
 recurringFirstPaymentHandler = do
     -- Generate a unique identifier.
-    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+    orderId <- UUID.toText <$> liftIO UUID.nextRandom
 
     -- Determine the url for these examples.
-    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+    hostUrl <- fmap (decodeUtf8 . guessApproot) request
 
     -- Create the first recurring payment in Mollie for the first customer.
     -- Note that we are expecting there to be atleast one existing
@@ -353,12 +351,11 @@ recurringFirstPaymentHandler = do
     -- that customer from the API.
     p <- withMollie $ do
         Right customerList <- getCustomers 0 1
-        let customerId = customer_id $ Prelude.head $ list_data customerList
+        let customerId = customer_id $ Prelude.head $ list__embedded customerList
         createCustomerPayment customerId
             (newPayment 10.00 "A first recurring payment" (hostUrl <> "/return-page?order_id=" <> orderId))
-            { newPayment_webhookUrl    = Just (hostUrl <> "/webhook-verification")
-            , newPayment_metadata      = Just $ object ["order_id" .= orderId]
-            , newPayment_recurringType = Just First
+            { newPayment_metadata      = Just $ object ["order_id" .= orderId]
+            , newPayment_sequenceType = Just First
             }
 
     case p of
@@ -370,17 +367,17 @@ recurringFirstPaymentHandler = do
             -- This payment should always have a redirect url as we did not create
             -- a recurring payment. So we can savely pattern match on a `Just` and
             -- redirect the user to the checkout screen.
-            let Just redirectUrl = paymentLinks_paymentUrl $ payment_links payment
+            let Just redirectUrl = payment_redirectUrl payment
             redirect $ TL.fromStrict redirectUrl
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> (pack $ show err)
 
 recurringPaymentHandler :: Handler ()
 recurringPaymentHandler = do
     -- Generate a unique identifier.
-    orderId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+    orderId <- fmap UUID.toText $ liftIO UUID.nextRandom
 
     -- Determine the url for these examples.
-    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+    hostUrl <- fmap (decodeUtf8 . guessApproot) request
 
     -- Create the first recurring payment in Mollie for the first customer.
     -- Note that we are expecting there to be atleast one existing
@@ -388,11 +385,10 @@ recurringPaymentHandler = do
     -- that customer from the API.
     p <- withMollie $ do
         Right customerList <- getCustomers 0 1
-        let customerId = customer_id $ Prelude.head $ list_data customerList
+        let customerId = customer_id $ Prelude.head $ list__embedded customerList
         createCustomerPayment customerId
             (newRecurringPayment 10.00 "An on-demand recurring payment")
-            { newPayment_webhookUrl    = Just (hostUrl <> "/webhook-verification")
-            , newPayment_metadata      = Just $ object ["order_id" .= orderId]
+            { newPayment_metadata      = Just $ object ["order_id" .= orderId]
             }
 
     case p of
@@ -412,10 +408,10 @@ recurringPaymentHandler = do
 recurringSubscriptionHandler :: Handler ()
 recurringSubscriptionHandler = do
     -- Generate a unique identifier.
-    subscriptionId <- fmap UUID.toText $ liftIO $ UUID.nextRandom
+    subscriptionId <- UUID.toText <$> liftIO UUID.nextRandom
 
     -- Determine the url for these examples.
-    hostUrl <- fmap (decodeUtf8 . guessApproot) $ request
+    hostUrl <- fmap (decodeUtf8 . guessApproot) request
 
     -- Create the subscription in Mollie for the first customer.
     -- Note that we are expecting there to be atleast one existing
@@ -423,11 +419,11 @@ recurringSubscriptionHandler = do
     -- errors while requesting that customer from the API.
     s <- withMollie $ do
         Right customerList <- getCustomers 0 1
-        let customerId = customer_id $ Prelude.head $ list_data customerList
+        let customerId = customer_id $ Prelude.head $ list__embedded customerList
         createCustomerSubscription customerId
             (newSubscription 10.00 "1 month" "My subscription")
             { newSubscription_times      = Just 12
-            , newSubscription_webhookUrl = Just (hostUrl <> "/webhook-subscription/" <> subscriptionId)
+            , newSubscription_webhookUrl = Nothing
             }
 
     case s of
@@ -448,7 +444,7 @@ cancelSubscriptionHandler = do
     -- errors while requesting that customer from the API.
     s <- withMollie $ do
         Right customerList <- getCustomers 0 1
-        let customerId = customer_id $ Prelude.head $ list_data customerList
+        let customerId = customer_id $ Prelude.head $ list__embedded customerList
         cancelCustomerSubscription customerId subscriptionId
 
     case s of

@@ -1,13 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
 
 module Mollie.API.Types where
 
+import Debug.Trace
 import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import qualified Data.Aeson.Types     as Aeson
+import qualified Data.Currency        as Currency
+import qualified Data.HashMap.Strict  as HashMap
 import qualified Data.Text            as Text
 import qualified Data.Time            as Time
+import           GHC.Generics
+import qualified Text.Printf          as Printf
 
 {-|
   Helper class for when data is required to be transformed
@@ -15,6 +20,77 @@ import qualified Data.Time            as Time
 -}
 class ToText a where
     toText :: a -> Text.Text
+
+{-|
+  In v2 endpoints, an amount object is always represented as follows:
+
+  For more information see: https://docs.mollie.com/guides/common-data-types#amount-object
+-}
+data Amount = Amount
+    { amount_currency :: Currency.Alpha
+    -- ^An ISO 4217 currency code. The currencies supported depend on the payment methods that are enabled on your account.
+    , amount_value    :: Text.Text
+    -- ^A string containing the exact amount you want to charge in the given currency. Make sure to send the right amount of decimals
+    } deriving (Show)
+
+{-|
+  Creates a Mollie amount given a Double
+-}
+defaultAmount :: Double -> Amount
+defaultAmount a =
+    Amount
+        { amount_currency = Currency.EUR
+        , amount_value = Text.pack $ Printf.printf "%.2f" a
+        }
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Amount)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Amount)
+
+data Address = Address
+    { address_streetAndNumber  :: Text.Text
+    -- ^The card holder’s street and street number
+    , address_streetAdditional :: Maybe Text.Text
+    , address_postalCode       :: Text.Text
+    -- ^The card holder’s postal code
+    , address_city             :: Text.Text
+    -- ^The card holder’s city
+    , address_region           :: Maybe Text.Text
+    -- ^The card holder’s region. Sometimes required for Paypal payments.
+    , address_country          :: Text.Text
+    -- ^The card holder’s country in ISO 3166-1 alpha-2 format
+    } deriving (Show)
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Address)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Address)
+
+data Link = Link
+    { link_href :: Text.Text
+    , link_type :: Text.Text
+    } deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        }
+    ''Link)
 
 {-|
   All possible statusses which can be assigned to a payment.
@@ -27,8 +103,8 @@ class ToText a where
 data PaymentStatus
     = PaymentOpen
     -- ^Payment has been created. This is the initial status.
-    | PaymentCancelled
-    -- ^Customer has cancelled the payment.
+    | PaymentCanceled
+    -- ^Customer has canceled the payment.
     | PaymentPending
     -- ^The payment process has been started. No notification.
     | PaymentExpired
@@ -37,12 +113,6 @@ data PaymentStatus
     -- ^The payment can't be completed.
     | PaymentPaid
     -- ^The payment was successful. This is the success status.
-    | PaymentPaidout
-    -- ^Mollie has transfered the payment to your bankaccount. No notification.
-    | PaymentRefunded
-    -- ^You requested a refund for the payment.
-    | PaymentChargedBack
-    -- ^The customer dispute the payment. This is possible with `creditcard`, `directdebit` and `paypal` payments.
     deriving (Read, Show, Eq)
 
 instance ToText PaymentStatus where
@@ -60,10 +130,13 @@ $(Aeson.deriveFromJSON
 data PaymentMethod
     = Ideal
     | Creditcard
-    | Mistercard
     | Sofort
     | Banktransfer
     | Directdebit
+    | Bancontact
+    | Eps
+    | Giropay
+    | Kbc
     | Belfius
     | Paypal
     | Bitcoin
@@ -87,7 +160,7 @@ instance Aeson.FromJSON PaymentMethod where
             invalid -> Aeson.typeMismatch "PaymentMethod" invalid
         where methods = map
                   (\method -> (Aeson.toJSON method, method))
-                  [ Ideal, Creditcard, Mistercard, Sofort, Banktransfer
+                  [ Ideal, Creditcard, Sofort, Banktransfer
                   , Directdebit, Belfius, Paypal, Bitcoin, Podiumcadeaukaart
                   , Paysafecard
                   ]
@@ -95,19 +168,20 @@ instance Aeson.FromJSON PaymentMethod where
 {-|
   All available recurring types.
 -}
-data RecurringType
+data SequenceType
     = First
     | Recurring
+    | Oneoff
     deriving (Read, Show, Eq)
 
-instance ToText RecurringType where
+instance ToText SequenceType where
     toText = Text.pack . Aeson.camelTo2 '_' . show
 
 $(Aeson.deriveJSON
     Aeson.defaultOptions
         { Aeson.constructorTagModifier = Aeson.camelTo2 '_'
         }
-    ''RecurringType)
+    ''SequenceType)
 
 {-|
   Structure to request a new payment with.
@@ -115,8 +189,8 @@ $(Aeson.deriveJSON
   For more information see: https://www.mollie.com/en/docs/reference/payments/create.
 -}
 data NewPayment = NewPayment
-    { newPayment_amount            :: Double
-    -- ^Set the amount in EURO to charge. Minimum based on available payment methods.
+    { newPayment_amount            :: Amount
+    -- ^Set the amount to charge. Minimum based on available payment methods.
     , newPayment_description       :: Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
     , newPayment_redirectUrl       :: Maybe Text.Text
@@ -129,34 +203,20 @@ data NewPayment = NewPayment
     -- ^Set any additional data in JSON format.
     , newPayment_locale            :: Maybe Text.Text
     -- ^Force the payment screen language.
-    , newPayment_recurringType     :: Maybe RecurringType
-    -- ^Set the recurring type, for more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
+    , newPayment_sequenceType      :: Maybe SequenceType
+    -- ^Set the equence type, default to `Oneoff`. For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
     , newPayment_customerId        :: Maybe Text.Text
     -- ^Set a customer account for this payment.
+    , newPayment_mandateId         :: Maybe Int
+    -- ^Set the ID of a specific Mandate. May be supplied to indicate which of the consumer’s accounts should be credited.
     -- IDEAL fields
     , newPayment_issuer            :: Maybe Text.Text
     -- CREDIT CARD
-    , newPayment_billingAddress    :: Maybe Text.Text
+    , newPayment_billingAddress    :: Maybe Address
     -- ^Set card holder's address. This is to improve the credit card fraude protection.
-    , newPayment_billingCity       :: Maybe Text.Text
-    -- ^Set the card holder's city.
-    , newPayment_billingRegion     :: Maybe Text.Text
-    -- ^Set the card holder's region.
-    , newPayment_billingPostal     :: Maybe Text.Text
-    -- ^Set the card holder's postal code.
-    , newPayment_billingCountry    :: Maybe Text.Text
-    -- ^Set the card holder's country in https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 format.
     -- CREDIT CARD & PAYPAL
-    , newPayment_shippingAddress   :: Maybe Text.Text
-    -- ^Set the shipping address. This is to improve fraude protection. When used with PayPal the maximum length is 128 characters.
-    , newPayment_shippingCity      :: Maybe Text.Text
-    -- ^Set the shipping city. When used with PayPal the maximum length is 100 characters.
-    , newPayment_shippingRegion    :: Maybe Text.Text
-    -- ^Set the shipping region. When used with PayPal the maximum length is 100 characters and this field is required when the shipping country is one of the following countries: `AR` `BR` `CA` `CN` `ID` `IN` `JP` `MX` `TH` `US`.
-    , newPayment_shippingPostal    :: Maybe Text.Text
-    -- ^Set the shipping postal code. When used with PayPal the maximum length is 20 characters.
-    , newPayment_shippingCountry   :: Maybe Text.Text
-    -- ^Set the shipping country in https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 format.
+    , newPayment_shippingAddress   :: Maybe Address
+    -- ^Set the shipping address. This is to improve fraude protection.
     -- BANK TRANSFER
     , newPayment_billingEmail      :: Maybe Text.Text
     -- ^Set the billing email address. Billing instructions will be send immediately when the payment is created. When no locale is set the email will be sent in English.
@@ -198,29 +258,6 @@ $(Aeson.deriveJSON
     ''Mode)
 
 {-|
-  Important links used for a payment.
--}
-data PaymentLinks = PaymentLinks
-    { paymentLinks_paymentUrl  :: Maybe Text.Text
-    -- ^URL where the customer should be redirected to pay.
-    , paymentLinks_webhookUrl  :: Maybe Text.Text
-    -- ^URL for the webhook called on status changes.
-    , paymentLinks_redirectUrl :: Maybe Text.Text
-    -- ^URL where the customer will be redirected to by Mollie after checkout.
-    , paymentLinks_settlement  :: Maybe Text.Text
-    -- ^URL to the settlement resource this payment belongs to.
-    , paymentLinks_refunds     :: Maybe Text.Text
-    -- ^URL to the refund resources for this payment.
-    }
-    deriving (Show)
-
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
-        }
-    ''PaymentLinks)
-
-{-|
   Representation of a payment made with Mollie.
 
   Note that the amounts are curently returned as text because Mollie does not return them as valid json numbers.
@@ -232,42 +269,54 @@ data Payment = Payment
     -- ^Mollie's reference to the payment resource.
     , payment_mode              :: Mode
     -- ^The mode used to create this payment.
-    , payment_createdDatetime   :: Time.UTCTime
+    , payment_createdAt         :: Time.UTCTime
     -- ^The date on which the payment was created.
     , payment_status            :: PaymentStatus
     -- ^The current status.
-    , payment_paidDatetime      :: Maybe Time.UTCTime
+    , payment_isCancelable      :: Bool
+    -- ^Whether or not the payment can be canceled.
+    , payment_paidAt            :: Maybe Time.UTCTime
     -- ^The date on which the payment was paid.
-    , payment_cancelledDatetime :: Maybe Time.UTCTime
-    -- ^The date on which the payment was cancelled.
-    , payment_expiredDatetime   :: Maybe Time.UTCTime
+    , payment_canceledAt        :: Maybe Time.UTCTime
+    -- ^The date on which the payment was canceled.
+    , payment_expiredAt         :: Maybe Time.UTCTime
     -- ^The date on which the payment expired.
-    , payment_expiryPeriod      :: Maybe Text.Text
-    -- ^The expiry period assigned to the payment, format: https://en.wikipedia.org/wiki/ISO_8601#Durations.
-    , payment_amount            :: Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The amount of EURO charged for this payment.
-    , payment_amountRefunded    :: Maybe Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The amount of EURO which has been refunded.
-    , payment_amountRemaining   :: Maybe Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The amount of EURO which remained after refunding.
+    , payment_failedAt          :: Maybe Time.UTCTime
+    -- ^The date on which the payment failed.
+    , payment_amount            :: Amount
+    -- ^The amount charged for this payment.
+    , payment_amountRefunded    :: Maybe Amount
+    -- ^The amount which has been refunded.
+    , payment_amountRemaining   :: Maybe Amount
+    -- ^The amount which remained after refunding.
     , payment_description       :: Text.Text
     -- ^The payment description, as show on the bank or card statement.
+    , payment_redirectUrl       :: Maybe Text.Text
+    -- ^The URL your customer will be redirected to after completing or canceling the payment process
+    , payment_webhookUrl        :: Maybe Text.Text
+    -- ^The URL Mollie will call as soon an important status change takes place.
     , payment_method            :: Maybe PaymentMethod
     -- ^The payment method used.
     , payment_metadata          :: Maybe Aeson.Value
     -- ^Custom privided metadata.
     , payment_locale            :: Maybe Text.Text
     -- ^The language used during checkout.
+    , payment_countryCode       :: Maybe Text.Text
+    -- ^This optional field contains your customer’s ISO 3166-1 alpha-2 country code, detected during checkout.
     , payment_profileId         :: Text.Text
     -- ^Identifier for the profile this payment was created on.
+    , payment_settlementAmount  :: Maybe Amount
+    -- ^The amount that will be settled to your account.
+    , payment_settlementId      :: Maybe Text.Text
+    -- ^The identifier referring to the settlement this payment was settled with.
     , payment_customerId        :: Maybe Text.Text
     -- ^Identifier for the customer this payment was created for.
+    , payment_sequenceType      :: SequenceType
+    -- ^Indicates which type of payment this is in a recurring sequence. Set to oneoff by default.
     , payment_mandateId         :: Maybe Text.Text
     -- ^Identifier for the mandate used for this payment if it's recurring.
-    , payment_settlementId      :: Maybe Text.Text
-    -- ^Identifier for the settlement this payment belongs to.
-    , payment_links             :: PaymentLinks
-    -- ^Important links used for this payment.
+    , payment_subscriptionId    :: Maybe Text.Text
+    -- ^Identifier for the subscription used for this payment.
     -- TODO: Add payment specific details, see: https://www.mollie.com/nl/docs/reference/payments/get
     , payment_details           :: Maybe Aeson.Object
     }
@@ -283,14 +332,14 @@ $(Aeson.deriveFromJSON
   Important links associated with List responses.
 -}
 data ListLinks = ListLinks
-    { listLinks_previous :: Maybe Text.Text
-    -- ^URL to previous list.
-    , listLinks_next     :: Maybe Text.Text
-    -- ^URL to next list.
-    , listLinks_first    :: Maybe Text.Text
-    -- ^URL to first list.
-    , listLinks_last     :: Maybe Text.Text
-    -- ^URL to last list.
+    { listLinks_self          :: Link
+    -- ^The URL to the current set of objects..
+    , listLinks_next          :: Maybe Link
+    -- ^The previous set of objects, if available.
+    , listLinks_previous      :: Maybe Link
+    -- ^The next set of objects, if available.
+    , listLinks_documentation :: Maybe Link
+    -- ^URL to the documentation of the current endpoint.
     }
     deriving (Show)
 
@@ -306,24 +355,23 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/nl/docs/reference/payments/list.
 -}
 data List a = List
-    { list_totalCount :: Int
-    -- ^Total number of resources available.
-    , list_offset     :: Int
-    -- ^The number of skipped resources.
-    , list_count      :: Int
-    -- ^The number of resources found in `data`.
-    , list_data       :: [a]
-    -- ^The resources for this request.
-    , list_links      :: Maybe ListLinks
-    -- ^Important links for this list.
+    { list_count     :: Int
+    -- ^The number of objects found in `_embedded`, which is either the requested number (with a maximum of 250) or the default number.
+    , list__embedded :: [a]
+    -- ^The actual data you’re looking for.
+    , list__links    :: ListLinks
+    -- ^Links to help navigate through the lists of objects.
     }
     deriving (Show)
 
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
-        }
-    ''List)
+instance Aeson.FromJSON a => Aeson.FromJSON (List a) where
+    parseJSON (Aeson.Object v) = List
+        <$> Aeson.parseField v "count"
+        <*> fmap elems (Aeson.parseField v "_embedded")
+        <*> Aeson.parseField v "_links"
+        where elems :: HashMap.HashMap Text.Text a -> [a]
+              elems = HashMap.elems . trace "hoi"
+    parseJSON invalid = Aeson.typeMismatch "Not a correct embed for a list" invalid
 
 {-|
   Structure to request a refund.
@@ -331,8 +379,8 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
 -}
 data NewRefund = NewRefund
-    { newRefund_amount      :: Maybe Double
-    -- ^Set the amount in EURO that should be refunded. If left `Nothing` the full amount of the targetted payment will be refunded.
+    { newRefund_amount      :: Maybe Amount
+    -- ^The amount to refund. For some payments, it can be up to €25.00 more than the original transaction amount.
     , newRefund_description :: Maybe Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
     }
@@ -350,12 +398,16 @@ $(Aeson.deriveToJSON
   For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
 -}
 data RefundStatus
-    = RefundPending
-    -- ^The payment will be processed soon (usually the next business day). The refund could still be cancelled, see: https://www.mollie.com/en/docs/reference/refunds/delete.
+    = RefundQueued
+    -- ^The refund will be processed once you have enough balance. You can still cancel this refund.
+    | RefundPending
+    -- ^The refund will be processed soon (usually the next business day). You can still cancel this refund.
     | RefundProcessing
-    -- ^The refund is processing, cancellation is no longer possible.
+    -- ^The refund is being processed. Cancellation is no longer possible.
     | RefundRefunded
-    -- ^The refund has been paid out the the customer.
+    -- ^The refund has been paid out to your customer.
+    | RefundFailed
+    -- ^The refund has failed during processing.
     deriving (Read, Show, Eq)
 
 instance ToText RefundStatus where
@@ -377,14 +429,20 @@ $(Aeson.deriveFromJSON
 data Refund = Refund
     { refund_id               :: Text.Text
     -- ^Mollies reference to the refund.
-    , refund_payment          :: Payment
-    -- ^The payment for which this refund was made.
-    , refund_amount           :: Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The amount of EURO which this refund refunded.
+    , refund_amount           :: Amount
+    -- ^The amount refunded to your customer with this refund.
+    , refund_settlementAmount :: Maybe Amount
+    -- ^This optional field will contain the amount that will be deducted from your account balance.
+    , refund_description      :: Text.Text
+    -- ^The description of the refund that may be shown to your customer.
     , refund_status           :: RefundStatus
     -- ^The status in which this refund currently is.
-    , refund_refundedDatetime :: Maybe Time.UTCTime
-    -- ^The date on which the refund was issued.
+    , refund_paymentId        :: Text.Text
+    -- ^The unique identifier of the payment this refund was created for.
+    , refund_payment          :: Maybe Payment
+    -- ^The payment this refund was made for.
+    , refund_createdAt        :: Time.UTCTime
+    -- ^The date and time the refund was issued.
     }
     deriving (Show)
 
@@ -395,32 +453,15 @@ $(Aeson.deriveFromJSON
     ''Refund)
 
 {-|
-  Minimum and maximum amounts for a payment method.
-
-  Note that the amounts are curently returned as text because Mollie does not return them as valid json numbers.
--}
-data MethodAmount = MethodAmount
-    { methodAmount_minimum :: Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The minimum amount of EURO for which it's possible to use this method.
-    , methodAmount_maximum :: Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The maximum amount of EURO for which it's possible to use this method.
-    }
-    deriving (Show)
-
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
-        }
-    ''MethodAmount)
-
-{-|
   Images associated with a payment method.
 -}
 data MethodImage = MethodImage
-    { methodImage_normal :: Text.Text
-    -- ^Normal method icon, 40x40 pixels.
-    , methodImage_bigger :: Text.Text
-    -- ^Bigger method icon, 80x80px pixels.
+    { methodImage_size1x :: Text.Text
+    -- ^Normal method icon, 32x24 pixels.
+    , methodImage_size2x :: Text.Text
+    -- ^Bigger method icon, 64x48px pixels.
+    , methodImage_svg    :: Text.Text
+    -- ^Vector icon, can scale to any size.
     }
     deriving (Show)
 
@@ -440,8 +481,6 @@ data Method = Method
     -- ^Mollies reference to the method.
     , method_description :: Text.Text
     -- ^Full name of the method. This value changes based on requested locale.
-    , method_amount      :: MethodAmount
-    -- ^Range for this method in EURO.
     , method_image       :: MethodImage
     -- ^Icons for this method.
     }
@@ -480,9 +519,9 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/customers/create.
 -}
 data NewCustomer = NewCustomer
-    { newCustomer_name     :: Text.Text
+    { newCustomer_name     :: Maybe Text.Text
     -- ^Set the full name of the customer.
-    , newCustomer_email    :: Text.Text
+    , newCustomer_email    :: Maybe Text.Text
     -- ^Set the email address.
     , newCustomer_locale   :: Maybe Text.Text
     -- ^Set the language to use for this customer during checkout,
@@ -507,9 +546,9 @@ data Customer = Customer
     -- ^Mollies reference to the customer.
     , customer_mode                :: Mode
     -- ^The mode in which this customer was created.
-    , customer_name                :: Text.Text
+    , customer_name                :: Maybe Text.Text
     -- ^The customers full name.
-    , customer_email               :: Text.Text
+    , customer_email               :: Maybe Text.Text
     -- ^The cusomters email address.
     , customer_locale              :: Maybe Text.Text
     -- ^The locale used for this customer during checkout.
@@ -517,7 +556,7 @@ data Customer = Customer
     -- ^Custom privided data for this customer.
     , customer_recentlyUsedMethods :: [PaymentMethod]
     -- ^The payment methods this customer recently used.
-    , customer_createdDatetime     :: Time.UTCTime
+    , customer_createdAt     :: Time.UTCTime
     -- ^The creation date of this customer.
     }
     deriving (Show)
@@ -618,9 +657,11 @@ data Mandate = Mandate
     -- ^The reference to the customer this mandate is assigned to.
     , mandate_details          :: Maybe MandateDetails
     -- ^The mandate details.
-    , mandate_mandateReference :: Maybe Text.Text
+    , mandate_mandateReference :: Text.Text
     -- ^The custom reference set for this mandate.
-    , mandate_createdDatetime  :: Time.UTCTime
+    , mandate_signatureDate    :: Text.Text
+    -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
+    , mandate_createdAt        :: Time.UTCTime
     -- ^The date on which this mandate was created.
     }
     deriving (Show)
@@ -637,12 +678,14 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
 -}
 data NewSubscription = NewSubscription
-    { newSubscription_amount      :: Double
-    -- ^Set the constant amount in EURO you want to charge with each payment.
+    { newSubscription_amount      :: Amount
+    -- ^Set the amount you want to charge each subscription cycle.
     , newSubscription_times       :: Maybe Int
     -- ^Set the total number of charges for the subscription to complete. Leave empty for ongoing subscriptions.
     , newSubscription_interval    :: Text.Text
     -- ^Set the interval to wait between charges like `1 month(s)`, `2 weeks` or `14 days`.
+    , newSubscription_startDate   :: Maybe Text.Text
+    -- ^Set the start date of the subscription in YYYY-MM-DD format. This is the first day on which your customer will be charged. When this parameter is not provided, the current date will be used instead.
     , newSubscription_description :: Text.Text
     -- ^Set the description which will be included in the payment description along with the carge date in `Y-m-d` format.
     , newSubscription_method      :: Maybe PaymentMethod
@@ -681,21 +724,6 @@ $(Aeson.deriveFromJSON
     ''SubscriptionStatus)
 
 {-|
-  Important links used for a subscription.
--}
-data SubscriptionLinks = SubscriptionLinks
-    { subscriptionLinks_webhookUrl :: Maybe Text.Text
-    -- ^The webhook URL used for payment made with this subscription.
-    }
-    deriving (Show)
-
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
-        }
-    ''SubscriptionLinks)
-
-{-|
   Representation of a subscription available at Mollie.
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
@@ -707,24 +735,26 @@ data Subscription = Subscription
     -- ^The reference to the customer this subscription was made for.
     , subscription_mode              :: Mode
     -- ^The mode used to create this subscription
-    , subscription_createdDatetime   :: Time.UTCTime
+    , subscription_createdAt         :: Time.UTCTime
     -- ^The date on which this subscription was created.
     , subscription_status            :: SubscriptionStatus
     -- ^The subscriptions status.
-    , subscription_amount            :: Text.Text -- FAIL: Amount is currently being returned as String
-    -- ^The amount of EURO charged with each payment for this subscription.
+    , subscription_amount            :: Amount
+    -- ^The amount charged with each payment for this subscription.
     , subscription_times             :: Maybe Int
     -- ^The total number or charges for the subscription to complete.
     , subscription_interval          :: Text.Text
     -- ^The interval to wait between charges.
+    , subscription_startDate         :: Text.Text
+    -- ^Set the start date of the subscription in YYYY-MM-DD format.
     , subscription_description       :: Text.Text
     -- ^The description for the payments made with this subscription.
     , subscription_method            :: Maybe PaymentMethod
     -- ^The payment method used for this subscription.
-    , subscription_cancelledDatetime :: Maybe Time.UTCTime
+    , subscription_cancelledAt       :: Maybe Time.UTCTime
     -- ^The date on which this subscription was cancelled.
-    , subscription_links             :: SubscriptionLinks
-    -- ^Important links used for this subscription.
+    , subscription_webhookUrl        :: Maybe Text.Text
+    -- ^The URL Mollie will call as soon a payment status change takes place.
     }
     deriving (Show)
 
@@ -734,13 +764,30 @@ $(Aeson.deriveFromJSON
         }
     ''Subscription)
 
+data Chargeback = Chargeback
+    { chargeback_id               :: Text.Text
+    -- ^Mollies reference to the chargeback.
+    , chargeback_amount           :: Amount
+    -- ^The amount charged back by the consumer.
+    , chargeback_settlementAmount :: Amount
+    -- ^The amount that will be deducted from your account
+    , chargeback_createdAt        :: Time.UTCTime
+    -- ^The date and time the chargeback was issued.
+    , chargeback_reversedAt       :: Maybe Time.UTCTime
+    -- ^The date and time the chargeback was issued.
+    , chargeback_paymentId        :: Text.Text
+    -- ^The unique identifier of the payment this chargeback was issued for.
+    , chargeback_payment          :: Maybe Payment
+    -- ^The payment this chargeback was made for.
+    }
+
 {-|
   Error data representations.
 
   For more information see: https://www.mollie.com/en/docs/errors.
 -}
 data ErrorLinks = ErrorLinks
-    { errorLinks_documentation :: Text.Text
+    { errorLinks_documentation :: Link
     }
     deriving (Show)
 
@@ -750,22 +797,11 @@ $(Aeson.deriveFromJSON
         }
     ''ErrorLinks)
 
-data ErrorBody = ErrorBody
-    { errorBody_type    :: Text.Text
-    , errorBody_message :: Text.Text
-    , errorBody_field   :: Maybe Text.Text
-    , errorBody_links   :: Maybe ErrorLinks
-    }
-    deriving (Show)
-
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
-        }
-    ''ErrorBody)
-
 data Error = Error
-    { error_error :: ErrorBody
+    { error_title   :: Text.Text
+    , error_detail  :: Text.Text
+    , error_field   :: Maybe Text.Text
+    , error__links  :: Maybe ErrorLinks
     }
     deriving (Show)
 
@@ -775,11 +811,12 @@ $(Aeson.deriveFromJSON
         }
     ''Error)
 
+
 {-|
   Response errors which could happen when requesting resources from Mollie.
 -}
 data ResponseError
     = ClientError Int Error
     | ServerError Int
-    | UnexpectedResponse
+    | UnexpectedResponse Text.Text
     deriving (Show)
