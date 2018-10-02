@@ -9,24 +9,25 @@ import qualified Mollie.API.Mandates      as Mandates
 import qualified Mollie.API.Payments      as Payments
 import qualified Mollie.API.Refunds       as Refunds
 import qualified Mollie.API.Subscriptions as Subscriptions
+import qualified Mollie.API.Types         as Mollie
 
-payments :: IO (Payments.List Payments.Payment)
+payments :: IO (Mollie.List Payments.Payment)
 payments =
     readJSONFile "test/fixtures/payments.json"
 
-customers :: IO (Customers.List Customers.Customer)
+customers :: IO (Mollie.List Customers.Customer)
 customers =
     readJSONFile "test/fixtures/customers.json"
 
-refunds :: IO (Refunds.List Refunds.Refund)
+refunds :: IO (Mollie.List Refunds.Refund)
 refunds =
     readJSONFile "test/fixtures/refunds.json"
 
-subscriptions :: IO (Subscriptions.List Subscriptions.Subscription)
+subscriptions :: IO (Mollie.List Subscriptions.Subscription)
 subscriptions =
     readJSONFile "test/fixtures/subscriptions.json"
 
-mandates :: IO ( Mandates.List Mandates.Mandate)
+mandates :: IO (Mollie.List Mandates.Mandate)
 mandates =
     readJSONFile "test/fixtures/customers_mandates.json"
 

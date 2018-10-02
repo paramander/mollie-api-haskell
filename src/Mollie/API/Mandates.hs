@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 {-|
   [WARNING]: This implementation is currently untested! Due to lack of access to the Mandates API.
@@ -10,22 +14,40 @@ module Mollie.API.Mandates
     , getCustomerMandate
     , getCustomerMandates
     -- Re-export relevant types
-    , PaymentMethod (..)
     , NewMandate (..)
     , MandateStatus (..)
     , MandateDetails (..)
     , Mandate (..)
-    , ListLinks (..)
-    , List (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Mandates.id
+    , status
+    , method
+    , details
+    , mandateReference
+    , signatureDate
+    , createdAt
+    , consumerName
+    , consumerAccount
+    , consumerBic
+    , cardHolder
+    , cardNumber
+    , cardLabel
+    , cardFingerprint
+    , cardExpiryDate
     ) where
 
+import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
+import           Data.Default         (def)
 import           Data.Monoid
 import qualified Data.Text            as Text
-import           Mollie.API.Customers
+import qualified Mollie.API.Customers as Customers
 import           Mollie.API.Internal
 import           Mollie.API.Types
 import qualified Network.HTTP.Types   as HTTP
+
+makeFieldsNoPrefix ''NewMandate
+makeFieldsNoPrefix ''MandateDetails
+makeFieldsNoPrefix ''Mandate
 
 {-|
   Mandates resource's path, relative to API's versioned customer resource url.
@@ -37,14 +59,11 @@ newMandate :: PaymentMethod
            -> Text.Text -- ^ consumerName
            -> Text.Text -- ^ consumerAccount
            -> NewMandate
-newMandate method consumerName consumerAccount = NewMandate
-    { newMandate_method           = method
-    , newMandate_consumerName     = consumerName
-    , newMandate_consumerAccount  = consumerAccount
-    , newMandate_consumerBic      = Nothing
-    , newMandate_signatureDate    = Nothing
-    , newMandate_mandateReference = Nothing
-    }
+newMandate _method _consumerName _consumerAccount =
+    def
+      & method .~ _method
+      & consumerName .~ _consumerName
+      & consumerAccount .~ _consumerAccount
 
 {-|
   Handler to create a new mandate for a specific customer.
@@ -56,7 +75,7 @@ createCustomerMandate :: Text.Text -- ^ customerId
 createCustomerMandate customerId newMandate =
     decodeResult <$> send HTTP.methodPost path newMandate
     where
-        path = Text.intercalate "/" [customersPath, customerId, mandatesPath]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath]
 
 {-|
   Handler to get a mandate by its identifier from a specific customer.
@@ -68,7 +87,7 @@ getCustomerMandate :: Text.Text -- ^ customerId
                    -> Mollie (Either ResponseError Mandate)
 getCustomerMandate customerId mandateId = get path
     where
-        path = Text.intercalate "/" [customersPath, customerId, mandatesPath, mandateId]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath, mandateId]
 
 {-|
   Handler to get a list of mandates for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of mandates returned with a single call is 250.
@@ -81,5 +100,5 @@ getCustomerMandates :: Text.Text -- ^ customerId
                     -> Mollie (Either ResponseError (List Mandate))
 getCustomerMandates customerId offset count = get path
     where
-        path = Text.intercalate "/" [customersPath, customerId, mandatesPath] <> query
+        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

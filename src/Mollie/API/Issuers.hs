@@ -1,21 +1,28 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Issuers
     ( issuersPath
     , getIssuer
     , getIssuers
     -- Re-export relevant types
-    , PaymentMethod (..)
     , Issuer (..)
-    , ListLinks (..)
-    , List (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Issuers.id
+    , name
+    , method
     ) where
 
+import qualified Control.Lens        as Lens
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
 import           Mollie.API.Types
+
+Lens.makeFieldsNoPrefix ''Issuer
 
 {-|
   Issuer resource's path, relative to API's versioned url.

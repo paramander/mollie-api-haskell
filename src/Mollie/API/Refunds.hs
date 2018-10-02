@@ -1,21 +1,34 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Refunds
     ( refundsPath
     , getRefunds
     -- Re-export relevant types
-    , Amount (..)
     , RefundStatus (..)
     , Refund (..)
-    , ListLinks (..)
-    , List (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Refunds.id
+    , amount
+    , description
+    , settlementAmount
+    , status
+    , paymentId
+    , payment
+    , createdAt
     ) where
 
+import           Control.Lens        (makeFieldsNoPrefix)
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
 import           Mollie.API.Types
+
+makeFieldsNoPrefix ''NewRefund
+makeFieldsNoPrefix ''Refund
 
 {-|
   Refund resource's path, relative to API's versioned url or to a Payment resource url.

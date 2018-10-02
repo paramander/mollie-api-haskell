@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Customers
     ( customersPath
@@ -11,23 +15,28 @@ module Mollie.API.Customers
     -- Re-export relevant types
     , NewCustomer (..)
     , Customer (..)
-    , Mode (..)
-    , PaymentStatus (..)
-    , PaymentMethod (..)
-    , SequenceType (..)
-    , NewPayment (..)
-    , Payment (..)
-    , List (..)
-    , ListLinks (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Customers.id
+    , mode
+    , name
+    , email
+    , locale
+    , metadata
+    , recentlyUsedMethods
+    , createdAt
     ) where
 
+import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
+import           Data.Default        (def)
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
-import           Mollie.API.Payments
+import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 import qualified Network.HTTP.Types  as HTTP
+
+makeFieldsNoPrefix ''NewCustomer
+makeFieldsNoPrefix ''Customer
 
 {-|
   Customer resource's path, relative to API's versioned url.
@@ -41,12 +50,10 @@ customersPath = "customers"
 newCustomer :: Text.Text -- ^ name
             -> Text.Text -- ^ email
             -> NewCustomer
-newCustomer name email = NewCustomer
-    { newCustomer_name     = Just name
-    , newCustomer_email    = Just email
-    , newCustomer_locale   = Nothing
-    , newCustomer_metadata = Nothing
-    }
+newCustomer _name _email =
+    def
+      & name .~ Just _name
+      & email .~ Just _email
 
 {-|
   Handler to create a new customer.
@@ -93,7 +100,7 @@ createCustomerPayment :: Text.Text -- ^ customerId
 createCustomerPayment customerId newPayment =
     decodeResult <$> send HTTP.methodPost path newPayment
     where
-        path = Text.intercalate "/" [customersPath, customerId, paymentsPath]
+        path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath]
 
 {-|
   Handler to get a list of payments for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payments returned with a single call is 250.
@@ -106,5 +113,5 @@ getCustomerPayments :: Text.Text -- ^ customerId
                     -> Mollie (Either ResponseError (List Payment))
 getCustomerPayments customerId offset count = get path
     where
-        path = Text.intercalate "/" [customersPath, customerId, paymentsPath] <> query
+        path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

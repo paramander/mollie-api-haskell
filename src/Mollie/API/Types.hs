@@ -1,18 +1,24 @@
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE DuplicateRecordFields  #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Types where
 
-import Debug.Trace
-import qualified Data.Aeson           as Aeson
-import qualified Data.Aeson.TH        as Aeson
-import qualified Data.Aeson.Types     as Aeson
-import qualified Data.Currency        as Currency
-import qualified Data.HashMap.Strict  as HashMap
-import qualified Data.Text            as Text
-import qualified Data.Time            as Time
+import qualified Control.Lens        as Lens
+import qualified Control.Lens.TH     as Lens
+import qualified Data.Aeson          as Aeson
+import qualified Data.Aeson.TH       as Aeson
+import qualified Data.Aeson.Types    as Aeson
+import qualified Data.Currency       as Currency
+import           Data.Default        (Default, def)
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Text           as Text
+import qualified Data.Time           as Time
 import           GHC.Generics
-import qualified Text.Printf          as Printf
+import qualified Text.Printf         as Printf
 
 {-|
   Helper class for when data is required to be transformed
@@ -27,70 +33,88 @@ class ToText a where
   For more information see: https://docs.mollie.com/guides/common-data-types#amount-object
 -}
 data Amount = Amount
-    { amount_currency :: Currency.Alpha
+    { _currency :: Currency.Alpha
     -- ^An ISO 4217 currency code. The currencies supported depend on the payment methods that are enabled on your account.
-    , amount_value    :: Text.Text
+    , _value    :: Text.Text
     -- ^A string containing the exact amount you want to charge in the given currency. Make sure to send the right amount of decimals
     } deriving (Show, Eq)
+
+instance Default Amount where
+    def = Amount
+        { _currency = Currency.EUR
+        , _value = mempty
+        }
 
 {-|
   Creates a Mollie amount given a Double
 -}
 defaultAmount :: Double -> Amount
-defaultAmount a =
-    Amount
-        { amount_currency = Currency.EUR
-        , amount_value = Text.pack $ Printf.printf "%.2f" a
-        }
+defaultAmount x =
+    def { _value = Text.pack $ Printf.printf "%.2f" x }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Amount)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Amount)
 
+Lens.makeFieldsNoPrefix ''Amount
+
 data Address = Address
-    { address_streetAndNumber  :: Text.Text
+    { _streetAndNumber  :: Text.Text
     -- ^The card holder’s street and street number
-    , address_streetAdditional :: Maybe Text.Text
-    , address_postalCode       :: Text.Text
+    , _streetAdditional :: Maybe Text.Text
+    , _postalCode       :: Text.Text
     -- ^The card holder’s postal code
-    , address_city             :: Text.Text
+    , _city             :: Text.Text
     -- ^The card holder’s city
-    , address_region           :: Maybe Text.Text
+    , _region           :: Maybe Text.Text
     -- ^The card holder’s region. Sometimes required for Paypal payments.
-    , address_country          :: Text.Text
+    , _country          :: Text.Text
     -- ^The card holder’s country in ISO 3166-1 alpha-2 format
     } deriving (Show)
 
+instance Default Address where
+    def = Address
+        { _streetAndNumber = mempty
+        , _streetAdditional = mempty
+        , _postalCode = mempty
+        , _city = mempty
+        , _region = mempty
+        , _country = mempty
+        }
+
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Address)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Address)
 
+Lens.makeFieldsNoPrefix ''Address
+
 data Link = Link
-    { link_href :: Text.Text
-    , link_type :: Text.Text
+    { _href :: Text.Text
     } deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Link)
+
+Lens.makeFieldsNoPrefix ''Link
 
 {-|
   All possible statusses which can be assigned to a payment.
@@ -147,7 +171,7 @@ data PaymentMethod
 
 instance ToText PaymentMethod where
     toText (NewPaymentMethod text) = text
-    toText a = Text.pack $ Aeson.camelTo2 '_' $ show a
+    toText a                       = Text.pack $ Aeson.camelTo2 '_' $ show a
 
 instance Aeson.ToJSON PaymentMethod where
     toJSON = Aeson.String . toText
@@ -189,56 +213,80 @@ $(Aeson.deriveJSON
   For more information see: https://www.mollie.com/en/docs/reference/payments/create.
 -}
 data NewPayment = NewPayment
-    { newPayment_amount            :: Amount
+    { _amount            :: Amount
     -- ^Set the amount to charge. Minimum based on available payment methods.
-    , newPayment_description       :: Text.Text
+    , _description       :: Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
-    , newPayment_redirectUrl       :: Maybe Text.Text
+    , _redirectUrl       :: Maybe Text.Text
     -- ^Set the url the customer will be redirected to after the payment process.
-    , newPayment_webhookUrl        :: Maybe Text.Text
+    , _webhookUrl        :: Maybe Text.Text
     -- ^Set a specific webhook for this payment.
-    , newPayment_method            :: Maybe PaymentMethod
+    , _method            :: Maybe PaymentMethod
     -- ^Set a specific payment method for this payment. The customer will not have a choice when this is set.
-    , newPayment_metadata          :: Maybe Aeson.Value
+    , _metadata          :: Maybe Aeson.Value
     -- ^Set any additional data in JSON format.
-    , newPayment_locale            :: Maybe Text.Text
+    , _locale            :: Maybe Text.Text
     -- ^Force the payment screen language.
-    , newPayment_sequenceType      :: Maybe SequenceType
+    , _sequenceType      :: Maybe SequenceType
     -- ^Set the equence type, default to `Oneoff`. For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
-    , newPayment_customerId        :: Maybe Text.Text
+    , _customerId        :: Maybe Text.Text
     -- ^Set a customer account for this payment.
-    , newPayment_mandateId         :: Maybe Int
+    , _mandateId         :: Maybe Int
     -- ^Set the ID of a specific Mandate. May be supplied to indicate which of the consumer’s accounts should be credited.
     -- IDEAL fields
-    , newPayment_issuer            :: Maybe Text.Text
+    , _issuer            :: Maybe Text.Text
     -- CREDIT CARD
-    , newPayment_billingAddress    :: Maybe Address
+    , _billingAddress    :: Maybe Address
     -- ^Set card holder's address. This is to improve the credit card fraude protection.
     -- CREDIT CARD & PAYPAL
-    , newPayment_shippingAddress   :: Maybe Address
+    , _shippingAddress   :: Maybe Address
     -- ^Set the shipping address. This is to improve fraude protection.
     -- BANK TRANSFER
-    , newPayment_billingEmail      :: Maybe Text.Text
+    , _billingEmail      :: Maybe Text.Text
     -- ^Set the billing email address. Billing instructions will be send immediately when the payment is created. When no locale is set the email will be sent in English.
-    , newPayment_dueDate           :: Maybe Text.Text
+    , _dueDate           :: Maybe Text.Text
     -- ^Set the date this payment should expire, in `YYYY-MM-DD` format. Minimum date is tomorrow and maximum is 100 days from now.
+
     -- SEPA DIRECT DEBIT
-    , newPayment_consumerName      :: Maybe Text.Text
+    , _consumerName      :: Maybe Text.Text
     -- ^Set the beneficiary name of the account holder.
-    , newPayment_consumerAccount   :: Maybe Text.Text
+    , _consumerAccount   :: Maybe Text.Text
     -- ^Set the account holders IBAN.
     -- PAYSAFECARD
-    , newPayment_customerReference :: Maybe Text.Text
+    , _customerReference :: Maybe Text.Text
     -- ^Set an identifier for the customer.
     }
     deriving (Show)
 
+instance Default NewPayment where
+    def = NewPayment
+        { _amount = def
+        , _description = mempty
+        , _redirectUrl = def
+        , _webhookUrl = def
+        , _method = def
+        , _metadata = def
+        , _locale = def
+        , _sequenceType = def
+        , _customerId = def
+        , _mandateId = def
+        , _issuer = def
+        , _billingAddress = def
+        , _shippingAddress = def
+        , _billingEmail = def
+        , _dueDate = def
+        , _consumerName = def
+        , _consumerAccount = def
+        , _customerReference = def
+        }
+
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         , Aeson.omitNothingFields  = True
         }
     ''NewPayment)
+
 
 {-|
   All available API modes.
@@ -265,66 +313,66 @@ $(Aeson.deriveJSON
   For more information see: https://www.mollie.com/nl/docs/reference/payments/get.
 -}
 data Payment = Payment
-    { payment_id                :: Text.Text
+    { _id               :: Text.Text
     -- ^Mollie's reference to the payment resource.
-    , payment_mode              :: Mode
+    , _mode             :: Mode
     -- ^The mode used to create this payment.
-    , payment_createdAt         :: Time.UTCTime
+    , _createdAt        :: Time.UTCTime
     -- ^The date on which the payment was created.
-    , payment_status            :: PaymentStatus
+    , _status           :: PaymentStatus
     -- ^The current status.
-    , payment_isCancelable      :: Bool
+    , _isCancelable     :: Bool
     -- ^Whether or not the payment can be canceled.
-    , payment_paidAt            :: Maybe Time.UTCTime
+    , _paidAt           :: Maybe Time.UTCTime
     -- ^The date on which the payment was paid.
-    , payment_canceledAt        :: Maybe Time.UTCTime
+    , _canceledAt       :: Maybe Time.UTCTime
     -- ^The date on which the payment was canceled.
-    , payment_expiredAt         :: Maybe Time.UTCTime
+    , _expiredAt        :: Maybe Time.UTCTime
     -- ^The date on which the payment expired.
-    , payment_failedAt          :: Maybe Time.UTCTime
+    , _failedAt         :: Maybe Time.UTCTime
     -- ^The date on which the payment failed.
-    , payment_amount            :: Amount
+    , _amount           :: Amount
     -- ^The amount charged for this payment.
-    , payment_amountRefunded    :: Maybe Amount
+    , _amountRefunded   :: Maybe Amount
     -- ^The amount which has been refunded.
-    , payment_amountRemaining   :: Maybe Amount
+    , _amountRemaining  :: Maybe Amount
     -- ^The amount which remained after refunding.
-    , payment_description       :: Text.Text
+    , _description      :: Text.Text
     -- ^The payment description, as show on the bank or card statement.
-    , payment_redirectUrl       :: Maybe Text.Text
+    , _redirectUrl      :: Maybe Text.Text
     -- ^The URL your customer will be redirected to after completing or canceling the payment process
-    , payment_webhookUrl        :: Maybe Text.Text
+    , _webhookUrl       :: Maybe Text.Text
     -- ^The URL Mollie will call as soon an important status change takes place.
-    , payment_method            :: Maybe PaymentMethod
+    , _method           :: Maybe PaymentMethod
     -- ^The payment method used.
-    , payment_metadata          :: Maybe Aeson.Value
+    , _metadata         :: Maybe Aeson.Value
     -- ^Custom privided metadata.
-    , payment_locale            :: Maybe Text.Text
+    , _locale           :: Maybe Text.Text
     -- ^The language used during checkout.
-    , payment_countryCode       :: Maybe Text.Text
+    , _countryCode      :: Maybe Text.Text
     -- ^This optional field contains your customer’s ISO 3166-1 alpha-2 country code, detected during checkout.
-    , payment_profileId         :: Text.Text
+    , _profileId        :: Text.Text
     -- ^Identifier for the profile this payment was created on.
-    , payment_settlementAmount  :: Maybe Amount
+    , _settlementAmount :: Maybe Amount
     -- ^The amount that will be settled to your account.
-    , payment_settlementId      :: Maybe Text.Text
+    , _settlementId     :: Maybe Text.Text
     -- ^The identifier referring to the settlement this payment was settled with.
-    , payment_customerId        :: Maybe Text.Text
+    , _customerId       :: Maybe Text.Text
     -- ^Identifier for the customer this payment was created for.
-    , payment_sequenceType      :: Maybe SequenceType
+    , _sequenceType     :: Maybe SequenceType
     -- ^Indicates which type of payment this is in a recurring sequence. Set to oneoff by default.
-    , payment_mandateId         :: Maybe Text.Text
+    , _mandateId        :: Maybe Text.Text
     -- ^Identifier for the mandate used for this payment if it's recurring.
-    , payment_subscriptionId    :: Maybe Text.Text
+    , _subscriptionId   :: Maybe Text.Text
     -- ^Identifier for the subscription used for this payment.
     -- TODO: Add payment specific details, see: https://www.mollie.com/nl/docs/reference/payments/get
-    , payment_details           :: Maybe Aeson.Object
+    , _details          :: Maybe Aeson.Object
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Payment)
 
@@ -332,22 +380,24 @@ $(Aeson.deriveFromJSON
   Important links associated with List responses.
 -}
 data ListLinks = ListLinks
-    { listLinks_self          :: Link
+    { _self          :: Link
     -- ^The URL to the current set of objects..
-    , listLinks_next          :: Maybe Link
+    , _next          :: Maybe Link
     -- ^The previous set of objects, if available.
-    , listLinks_previous      :: Maybe Link
+    , _previous      :: Maybe Link
     -- ^The next set of objects, if available.
-    , listLinks_documentation :: Maybe Link
+    , _documentation :: Maybe Link
     -- ^URL to the documentation of the current endpoint.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''ListLinks)
+
+Lens.makeFieldsNoPrefix ''ListLinks
 
 {-|
   List response for any resource with metadata.
@@ -355,11 +405,11 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/nl/docs/reference/payments/list.
 -}
 data List a = List
-    { list_count     :: Int
+    { _count    :: Int
     -- ^The number of objects found in `_embedded`, which is either the requested number (with a maximum of 250) or the default number.
-    , list__embedded :: [a]
+    , _embedded :: [a]
     -- ^The actual data you’re looking for.
-    , list__links    :: ListLinks
+    , _links    :: ListLinks
     -- ^Links to help navigate through the lists of objects.
     }
     deriving (Show)
@@ -373,22 +423,30 @@ instance Aeson.FromJSON a => Aeson.FromJSON (List a) where
               elems = concat . HashMap.elems
     parseJSON invalid = Aeson.typeMismatch "Not a correct embed for a list" invalid
 
+Lens.makeFieldsNoPrefix ''List
+
 {-|
   Structure to request a refund.
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
 -}
 data NewRefund = NewRefund
-    { newRefund_amount      :: Maybe Amount
+    { _amount      :: Maybe Amount
     -- ^The amount to refund. For some payments, it can be up to €25.00 more than the original transaction amount.
-    , newRefund_description :: Maybe Text.Text
+    , _description :: Maybe Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
     }
     deriving (Show)
 
+instance Default NewRefund where
+    def = NewRefund
+        { _amount = def
+        , _description = def
+        }
+
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''NewRefund)
 
@@ -427,28 +485,28 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
 -}
 data Refund = Refund
-    { refund_id               :: Text.Text
+    { _id               :: Text.Text
     -- ^Mollies reference to the refund.
-    , refund_amount           :: Amount
+    , _amount           :: Amount
     -- ^The amount refunded to your customer with this refund.
-    , refund_settlementAmount :: Maybe Amount
+    , _settlementAmount :: Maybe Amount
     -- ^This optional field will contain the amount that will be deducted from your account balance.
-    , refund_description      :: Text.Text
+    , _description      :: Text.Text
     -- ^The description of the refund that may be shown to your customer.
-    , refund_status           :: RefundStatus
+    , _status           :: RefundStatus
     -- ^The status in which this refund currently is.
-    , refund_paymentId        :: Text.Text
+    , _paymentId        :: Text.Text
     -- ^The unique identifier of the payment this refund was created for.
-    , refund_payment          :: Maybe Payment
+    , _payment          :: Maybe Payment
     -- ^The payment this refund was made for.
-    , refund_createdAt        :: Time.UTCTime
+    , _createdAt        :: Time.UTCTime
     -- ^The date and time the refund was issued.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Refund)
 
@@ -456,18 +514,18 @@ $(Aeson.deriveFromJSON
   Images associated with a payment method.
 -}
 data MethodImage = MethodImage
-    { methodImage_size1x :: Text.Text
+    { _size1x :: Text.Text
     -- ^Normal method icon, 32x24 pixels.
-    , methodImage_size2x :: Text.Text
+    , _size2x :: Text.Text
     -- ^Bigger method icon, 64x48px pixels.
-    , methodImage_svg    :: Text.Text
+    , _svg    :: Text.Text
     -- ^Vector icon, can scale to any size.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''MethodImage)
 
@@ -477,39 +535,38 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/methods/get.
 -}
 data Method = Method
-    { method_id          :: PaymentMethod
+    { _id          :: PaymentMethod
     -- ^Mollies reference to the method.
-    , method_description :: Text.Text
+    , _description :: Text.Text
     -- ^Full name of the method. This value changes based on requested locale.
-    , method_image       :: MethodImage
+    , _image       :: MethodImage
     -- ^Icons for this method.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Method)
 
 {-|
   Representation of an issuer available at Mollie.
 
-  For more information see: https://www.mollie.com/en/docs/reference/issuers/get.
 -}
 data Issuer = Issuer
-    { issuer_id     :: Text.Text
+    { _id     :: Text.Text
     -- ^Mollies reference to the issuer.
-    , issuer_name   :: Text.Text
+    , _name   :: Text.Text
     -- ^The issuers full name.
-    , issuer_method :: PaymentMethod
+    , _method :: PaymentMethod
     -- ^The payment method this issuer belongs to. Currently only Ideal is supported.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Issuer)
 
@@ -519,20 +576,28 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/customers/create.
 -}
 data NewCustomer = NewCustomer
-    { newCustomer_name     :: Maybe Text.Text
+    { _name     :: Maybe Text.Text
     -- ^Set the full name of the customer.
-    , newCustomer_email    :: Maybe Text.Text
+    , _email    :: Maybe Text.Text
     -- ^Set the email address.
-    , newCustomer_locale   :: Maybe Text.Text
+    , _locale   :: Maybe Text.Text
     -- ^Set the language to use for this customer during checkout,
-    , newCustomer_metadata :: Maybe Aeson.Value
+    , _metadata :: Maybe Aeson.Value
     -- ^Set any additional data in JSON format.
     }
     deriving (Show)
 
+instance Default NewCustomer where
+    def = NewCustomer
+        { _name = def
+        , _email = def
+        , _locale = def
+        , _metadata = def
+        }
+
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''NewCustomer)
 
@@ -542,28 +607,28 @@ $(Aeson.deriveToJSON
   For more information see: https://www.mollie.com/en/docs/reference/customers/get.
 -}
 data Customer = Customer
-    { customer_id                  :: Text.Text
+    { _id                  :: Text.Text
     -- ^Mollies reference to the customer.
-    , customer_mode                :: Mode
+    , _mode                :: Mode
     -- ^The mode in which this customer was created.
-    , customer_name                :: Maybe Text.Text
+    , _name                :: Maybe Text.Text
     -- ^The customers full name.
-    , customer_email               :: Maybe Text.Text
+    , _email               :: Maybe Text.Text
     -- ^The cusomters email address.
-    , customer_locale              :: Maybe Text.Text
+    , _locale              :: Maybe Text.Text
     -- ^The locale used for this customer during checkout.
-    , customer_metadata            :: Maybe Aeson.Value
+    , _metadata            :: Maybe Aeson.Value
     -- ^Custom privided data for this customer.
-    , customer_recentlyUsedMethods :: [PaymentMethod]
+    , _recentlyUsedMethods :: [PaymentMethod]
     -- ^The payment methods this customer recently used.
-    , customer_createdAt     :: Time.UTCTime
+    , _createdAt           :: Time.UTCTime
     -- ^The creation date of this customer.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Customer)
 
@@ -573,24 +638,34 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
 -}
 data NewMandate = NewMandate
-    { newMandate_method           :: PaymentMethod
+    { _method           :: PaymentMethod
     -- ^Set the payment method of the mandate. Currently only directdebit is supported.
-    , newMandate_consumerName     :: Text.Text
+    , _consumerName     :: Text.Text
     -- ^Set the consumer's name.
-    , newMandate_consumerAccount  :: Text.Text
+    , _consumerAccount  :: Text.Text
     -- ^Set the consumer's IBAN.
-    , newMandate_consumerBic      :: Maybe Text.Text
+    , _consumerBic      :: Maybe Text.Text
     -- ^Set the consumer's bank BIC/SWIFT code.
-    , newMandate_signatureDate    :: Maybe Text.Text
+    , _signatureDate    :: Maybe Text.Text
     -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
-    , newMandate_mandateReference :: Maybe Text.Text
+    , _mandateReference :: Maybe Text.Text
     -- ^Set a custom reference to this mandate.
     }
     deriving (Show)
 
+instance Default NewMandate where
+    def = NewMandate
+        { _method = Directdebit
+        , _consumerName = mempty
+        , _consumerAccount = mempty
+        , _consumerBic = def
+        , _signatureDate = def
+        , _mandateReference = def
+        }
+
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''NewMandate)
 
@@ -616,28 +691,28 @@ $(Aeson.deriveFromJSON
   Details which might be available on Mandates.
 -}
 data MandateDetails = MandateDetails
-    { mandateDetails_consumerName    :: Maybe Text.Text
+    { _consumerName    :: Maybe Text.Text
     -- ^The direct debit account holder's name.
-    , mandateDetails_consumerAccount :: Maybe Text.Text
+    , _consumerAccount :: Maybe Text.Text
     -- ^The direct debit account IBAN.
-    , mandateDetails_consumerBic     :: Maybe Text.Text
+    , _consumerBic     :: Maybe Text.Text
     -- ^The direct debit account BIC.
-    , mandateDetails_cardHolder      :: Maybe Text.Text
+    , _cardHolder      :: Maybe Text.Text
     -- ^The credit card holder's name.
-    , mandateDetails_cardNumber      :: Maybe Text.Text
+    , _cardNumber      :: Maybe Text.Text
     -- ^The last 4 digits of the credit card number.
-    , mandateDetails_cardLabel       :: Maybe Text.Text
+    , _cardLabel       :: Maybe Text.Text
     -- ^The credit card's label.
-    , mandateDetails_cardFingerprint :: Maybe Text.Text
+    , _cardFingerprint :: Maybe Text.Text
     -- ^Unique alphanumeric representation of a credit card. Usable to identify returning customers.
-    , mandateDetails_cardExpiryDate  :: Maybe Text.Text
+    , _cardExpiryDate  :: Maybe Text.Text
     -- ^The credit card's expiry date in `YYYY-MM-DD` format.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''MandateDetails)
 
@@ -647,26 +722,26 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
 data Mandate = Mandate
-    { mandate_id               :: Text.Text
+    { _id               :: Text.Text
     -- ^Mollies reference to the mandate.
-    , mandate_status           :: MandateStatus
+    , _status           :: MandateStatus
     -- ^The status of the mandate.
-    , mandate_method           :: PaymentMethod
+    , _method           :: PaymentMethod
     -- ^The payment method of the mandate.
-    , mandate_details          :: Maybe MandateDetails
+    , _details          :: Maybe MandateDetails
     -- ^The mandate details.
-    , mandate_mandateReference :: Maybe Text.Text
+    , _mandateReference :: Maybe Text.Text
     -- ^The custom reference set for this mandate.
-    , mandate_signatureDate    :: Maybe Text.Text
+    , _signatureDate    :: Maybe Text.Text
     -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
-    , mandate_createdAt        :: Time.UTCTime
+    , _createdAt        :: Time.UTCTime
     -- ^The date on which this mandate was created.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Mandate)
 
@@ -676,26 +751,37 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
 -}
 data NewSubscription = NewSubscription
-    { newSubscription_amount      :: Amount
+    { _amount      :: Amount
     -- ^Set the amount you want to charge each subscription cycle.
-    , newSubscription_times       :: Maybe Int
+    , _times       :: Maybe Int
     -- ^Set the total number of charges for the subscription to complete. Leave empty for ongoing subscriptions.
-    , newSubscription_interval    :: Text.Text
+    , _interval    :: Text.Text
     -- ^Set the interval to wait between charges like `1 month(s)`, `2 weeks` or `14 days`.
-    , newSubscription_startDate   :: Maybe Text.Text
+    , _startDate   :: Maybe Text.Text
     -- ^Set the start date of the subscription in YYYY-MM-DD format. This is the first day on which your customer will be charged. When this parameter is not provided, the current date will be used instead.
-    , newSubscription_description :: Text.Text
+    , _description :: Text.Text
     -- ^Set the description which will be included in the payment description along with the carge date in `Y-m-d` format.
-    , newSubscription_method      :: Maybe PaymentMethod
+    , _method      :: Maybe PaymentMethod
     -- ^Force the payment method, leave empty to use one of the customers valid mandates.
-    , newSubscription_webhookUrl  :: Maybe Text.Text
+    , _webhookUrl  :: Maybe Text.Text
     -- ^Set a webhook URL for all subscription payments.
     }
     deriving (Show)
 
+instance Default NewSubscription where
+    def = NewSubscription
+        { _amount = def
+        , _times = def
+        , _interval = mempty
+        , _startDate = def
+        , _description = mempty
+        , _method = def
+        , _webhookUrl = def
+        }
+
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''NewSubscription)
 
@@ -727,53 +813,53 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
 -}
 data Subscription = Subscription
-    { subscription_id                :: Text.Text
+    { _id          :: Text.Text
     -- ^Mollies reference to the subscription.
-    , subscription_mode              :: Mode
+    , _mode        :: Mode
     -- ^The mode used to create this subscription
-    , subscription_createdAt         :: Time.UTCTime
+    , _createdAt   :: Time.UTCTime
     -- ^The date on which this subscription was created.
-    , subscription_status            :: SubscriptionStatus
+    , _status      :: SubscriptionStatus
     -- ^The subscriptions status.
-    , subscription_amount            :: Amount
+    , _amount      :: Amount
     -- ^The amount charged with each payment for this subscription.
-    , subscription_times             :: Maybe Int
+    , _times       :: Maybe Int
     -- ^The total number or charges for the subscription to complete.
-    , subscription_interval          :: Text.Text
+    , _interval    :: Text.Text
     -- ^The interval to wait between charges.
-    , subscription_startDate         :: Maybe Text.Text
+    , _startDate   :: Maybe Text.Text
     -- ^Set the start date of the subscription in YYYY-MM-DD format.
-    , subscription_description       :: Text.Text
+    , _description :: Text.Text
     -- ^The description for the payments made with this subscription.
-    , subscription_method            :: Maybe PaymentMethod
+    , _method      :: Maybe PaymentMethod
     -- ^The payment method used for this subscription.
-    , subscription_canceledAt        :: Maybe Time.UTCTime
+    , _canceledAt  :: Maybe Time.UTCTime
     -- ^The date on which this subscription was canceled.
-    , subscription_webhookUrl        :: Maybe Text.Text
+    , _webhookUrl  :: Maybe Text.Text
     -- ^The URL Mollie will call as soon a payment status change takes place.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Subscription)
 
 data Chargeback = Chargeback
-    { chargeback_id               :: Text.Text
+    { _id               :: Text.Text
     -- ^Mollies reference to the chargeback.
-    , chargeback_amount           :: Amount
+    , _amount           :: Amount
     -- ^The amount charged back by the consumer.
-    , chargeback_settlementAmount :: Amount
+    , _settlementAmount :: Amount
     -- ^The amount that will be deducted from your account
-    , chargeback_createdAt        :: Time.UTCTime
+    , _createdAt        :: Time.UTCTime
     -- ^The date and time the chargeback was issued.
-    , chargeback_reversedAt       :: Maybe Time.UTCTime
+    , _reversedAt       :: Maybe Time.UTCTime
     -- ^The date and time the chargeback was issued.
-    , chargeback_paymentId        :: Text.Text
+    , _paymentId        :: Text.Text
     -- ^The unique identifier of the payment this chargeback was issued for.
-    , chargeback_payment          :: Maybe Payment
+    , _payment          :: Maybe Payment
     -- ^The payment this chargeback was made for.
     }
 
@@ -783,29 +869,33 @@ data Chargeback = Chargeback
   For more information see: https://www.mollie.com/en/docs/errors.
 -}
 data ErrorLinks = ErrorLinks
-    { errorLinks_documentation :: Link
+    { _documentation :: Link
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''ErrorLinks)
 
+Lens.makeFieldsNoPrefix ''ErrorLinks
+
 data Error = Error
-    { error_title   :: Text.Text
-    , error_detail  :: Text.Text
-    , error_field   :: Maybe Text.Text
-    , error__links  :: Maybe ErrorLinks
+    { _title  :: Text.Text
+    , _detail :: Text.Text
+    , _field  :: Maybe Text.Text
+    , _links  :: Maybe ErrorLinks
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1 . snd . break (== '_')
+        { Aeson.fieldLabelModifier = drop 1
         }
     ''Error)
+
+Lens.makeFieldsNoPrefix ''Error
 
 
 {-|

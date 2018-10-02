@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Subscriptions
     ( subscriptionsPath
@@ -8,23 +12,35 @@ module Mollie.API.Subscriptions
     , getCustomerSubscriptions
     , cancelCustomerSubscription
     -- Re-export relevant types
-    , Amount (..)
-    , PaymentMethod (..)
     , NewSubscription (..)
-    , Mode (..)
     , SubscriptionStatus (..)
     , Subscription (..)
-    , ListLinks (..)
-    , List (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Subscriptions.id
+    , mode
+    , createdAt
+    , status
+    , amount
+    , times
+    , interval
+    , startDate
+    , description
+    , method
+    , canceledAt
+    , webhookUrl
     ) where
 
+import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
+import           Data.Default         (def)
 import           Data.Monoid
 import qualified Data.Text            as Text
-import           Mollie.API.Customers
+import qualified Mollie.API.Customers as Customers
 import           Mollie.API.Internal
 import           Mollie.API.Types
 import qualified Network.HTTP.Types   as HTTP
+
+makeFieldsNoPrefix ''NewSubscription
+makeFieldsNoPrefix ''Subscription
 
 {-|
   Subscriptions resource's path, relative to API's versioned customer resource url.
@@ -42,15 +58,11 @@ newSubscription :: Double -- ^ amount
                 -> Text.Text -- ^ interval
                 -> Text.Text -- ^ description
                 -> NewSubscription
-newSubscription amount interval description = NewSubscription
-    { newSubscription_amount      = defaultAmount amount
-    , newSubscription_times       = Nothing
-    , newSubscription_interval    = interval
-    , newSubscription_description = description
-    , newSubscription_startDate   = Nothing
-    , newSubscription_method      = Nothing
-    , newSubscription_webhookUrl  = Nothing
-    }
+newSubscription _amount _interval _description =
+    def
+      & amount .~ (defaultAmount _amount)
+      & interval .~ _interval
+      & description .~ _description
 
 {-|
   Handler to create a new subscription for a specific customer.
@@ -62,7 +74,7 @@ createCustomerSubscription :: Text.Text -- ^ customerId
 createCustomerSubscription customerId newSubscription =
     decodeResult <$> send HTTP.methodPost path newSubscription
     where
-        path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath]
 
 {-|
   Handler to get a subscription by its identifier from a specific customer.
@@ -74,7 +86,7 @@ getCustomerSubscription :: Text.Text -- ^ customerId
                         -> Mollie (Either ResponseError Subscription)
 getCustomerSubscription customerId subscriptionId = get path
     where
-        path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath, subscriptionId]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, subscriptionId]
 
 {-|
   Handler to get a list of subscriptions for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of subscriptions returned with a single call is 250.
@@ -87,7 +99,7 @@ getCustomerSubscriptions :: Text.Text -- ^ customerId
                          -> Mollie (Either ResponseError (List Subscription))
 getCustomerSubscriptions customerId offset count = get path
     where
-        path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath] <> query
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count
 
 {-|
@@ -101,4 +113,4 @@ cancelCustomerSubscription :: Text.Text -- ^ customerId
 cancelCustomerSubscription customerId subscriptionId =
     decodeResult <$> delete path
     where
-        path = Text.intercalate "/" [customersPath, customerId, subscriptionsPath, subscriptionId]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, subscriptionId]

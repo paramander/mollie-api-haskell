@@ -1,5 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE DuplicateRecordFields  #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Payments
     ( paymentsPath
@@ -14,27 +19,60 @@ module Mollie.API.Payments
     , cancelPaymentRefund
     , getPaymentRefunds
     -- Re-export relevant types
-    , Amount (..)
     , PaymentStatus (..)
     , PaymentMethod (..)
     , SequenceType (..)
     , NewPayment (..)
-    , Mode (..)
     , Payment (..)
-    , ListLinks (..)
-    , List (..)
-    , NewRefund (..)
-    , RefundStatus (..)
-    , Refund (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Payments.id
+    , mode
+    , createdAt
+    , status
+    , isCancelable
+    , paidAt
+    , canceledAt
+    , expiredAt
+    , failedAt
+    , amount
+    , amountRefunded
+    , amountRemaining
+    , description
+    , redirectUrl
+    , webhookUrl
+    , method
+    , metadata
+    , locale
+    , countryCode
+    , profileId
+    , settlementAmount
+    , settlementId
+    , customerId
+    , sequenceType
+    , mandateId
+    , subscriptionId
+    , details
+    , issuer
+    , billingAddress
+    , shippingAddress
+    , billingEmail
+    , dueDate
+    , consumerName
+    , consumerAccount
+    , customerReference
     ) where
 
+import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
+import           Data.Default        (def)
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
-import           Mollie.API.Refunds
+import qualified Mollie.API.Refunds  as Refunds
 import           Mollie.API.Types
 import qualified Network.HTTP.Types  as HTTP
+
+makeFieldsNoPrefix ''NewPayment
+makeFieldsNoPrefix ''Payment
 
 {-|
   Payment resource's path, relative to API's versioned url or to a customer resource url.
@@ -49,10 +87,10 @@ newPayment :: Double -- ^ amount
            -> Text.Text -- ^ description
            -> Text.Text -- ^ redirectUrl
            -> NewPayment
-newPayment amount description redirectUrl = (newRecurringPayment amount description)
-    { newPayment_redirectUrl       = Just redirectUrl
-    , newPayment_sequenceType      = Just Oneoff
-    }
+newPayment _amount _description _redirectUrl =
+    (newRecurringPayment _amount _description)
+      & redirectUrl .~ Just _redirectUrl
+      & sequenceType .~ Just Oneoff
 
 {-|
   Helper to create a minimal new payment for recurring use.
@@ -67,26 +105,26 @@ newPayment amount description redirectUrl = (newRecurringPayment amount descript
 newRecurringPayment :: Double -- ^ amount
                     -> Text.Text -- ^ description
                     -> NewPayment
-newRecurringPayment amount description = NewPayment
-    { newPayment_amount            = defaultAmount amount
-    , newPayment_description       = description
-    , newPayment_redirectUrl       = Nothing
-    , newPayment_webhookUrl        = Nothing
-    , newPayment_method            = Nothing
-    , newPayment_metadata          = Nothing
-    , newPayment_locale            = Nothing
-    , newPayment_sequenceType      = Just Recurring
-    , newPayment_customerId        = Nothing
-    , newPayment_mandateId         = Nothing
-    , newPayment_issuer            = Nothing
-    , newPayment_billingAddress    = Nothing
-    , newPayment_shippingAddress   = Nothing
-    , newPayment_billingEmail      = Nothing
-    , newPayment_dueDate           = Nothing
-    , newPayment_consumerName      = Nothing
-    , newPayment_consumerAccount   = Nothing
-    , newPayment_customerReference = Nothing
-    }
+newRecurringPayment _amount _description =
+    def
+      & amount .~ (defaultAmount _amount)
+      & description .~ _description
+      & redirectUrl .~ Nothing
+      & webhookUrl .~ Nothing
+      & method .~ Nothing
+      & metadata .~ Nothing
+      & locale .~ Nothing
+      & sequenceType .~ Just Recurring
+      & customerId .~ Nothing
+      & mandateId .~ Nothing
+      & issuer .~ Nothing
+      & billingAddress .~ Nothing
+      & shippingAddress .~ Nothing
+      & billingEmail .~ Nothing
+      & dueDate .~ Nothing
+      & consumerName .~ Nothing
+      & consumerAccount .~ Nothing
+      & customerReference .~ Nothing
 
 {-|
   Handler to create a new payment.
@@ -127,10 +165,7 @@ getPayments from limit = get path
   Helper to create a minimal new refund. Defaults to refunding the total amount for the targetted payment.
 -}
 newRefund :: NewRefund
-newRefund = NewRefund
-    { newRefund_amount      = Nothing
-    , newRefund_description = Nothing
-    }
+newRefund = def
 
 {-|
   Handler to create a new refund for a specific payment.
@@ -143,7 +178,7 @@ createPaymentRefund :: Text.Text -- ^ paymentId
 createPaymentRefund paymentId newRefund =
     decodeResult <$> send HTTP.methodPost path newRefund
     where
-        path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath]
+        path = Text.intercalate "/" [paymentsPath, paymentId, Refunds.refundsPath]
 
 {-|
   Handler to get a refund by its identifier for a specific payment.
@@ -155,7 +190,7 @@ getPaymentRefund :: Text.Text -- ^ paymentId
                  -> Mollie (Either ResponseError Refund)
 getPaymentRefund paymentId refundId = get path
     where
-        path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath, refundId]
+        path = Text.intercalate "/" [paymentsPath, paymentId, Refunds.refundsPath, refundId]
 
 {-|
   Handler to cancel a refund by its identifier for a specific payment.
@@ -170,7 +205,7 @@ cancelPaymentRefund :: Text.Text -- ^ paymentId
 cancelPaymentRefund paymentId refundId =
     ignoreResult <$> delete path
     where
-        path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath, refundId]
+        path = Text.intercalate "/" [paymentsPath, paymentId, Refunds.refundsPath, refundId]
 
 {-|
   Handler to get a list of refunds for a specific payment. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of refunds returned with a single call is 250.
@@ -183,5 +218,5 @@ getPaymentRefunds :: Text.Text -- ^ paymentId
                   -> Mollie (Either ResponseError (List Refund))
 getPaymentRefunds paymentId offset count = get path
     where
-        path = Text.intercalate "/" [paymentsPath, paymentId, refundsPath] <> query
+        path = Text.intercalate "/" [paymentsPath, paymentId, Refunds.refundsPath] <> query
         query = "?offset=" <> showT offset <> "&count=" <> showT count

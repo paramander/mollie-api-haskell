@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Methods
     ( methodsPath
@@ -8,15 +12,23 @@ module Mollie.API.Methods
     , PaymentMethod (..)
     , MethodImage (..)
     , Method (..)
-    , ListLinks (..)
-    , List (..)
-    , ResponseError (..)
+    -- Lens getters
+    , Mollie.API.Methods.id
+    , description
+    , image
+    , size1x
+    , size2x
+    , svg
     ) where
 
+import qualified Control.Lens        as Lens
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
 import           Mollie.API.Types
+
+Lens.makeFieldsNoPrefix ''Method
+Lens.makeFieldsNoPrefix ''MethodImage
 
 {-|
   Payment method resource's path, relative to API's versioned url.
