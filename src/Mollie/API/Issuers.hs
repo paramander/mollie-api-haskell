@@ -8,7 +8,6 @@ module Mollie.API.Issuers
     ( issuersPath
     , getIssuer
     , getIssuers
-    -- Re-export relevant types
     , Issuer (..)
     -- Lens getters
     , Mollie.API.Issuers.id
@@ -17,10 +16,33 @@ module Mollie.API.Issuers
     ) where
 
 import qualified Control.Lens        as Lens
+import qualified Data.Aeson          as Aeson
+import qualified Data.Aeson.TH       as Aeson
 import           Data.Monoid
 import qualified Data.Text           as Text
 import           Mollie.API.Internal
+import           Mollie.API.Methods  (PaymentMethod (..))
 import           Mollie.API.Types
+
+{-|
+  Representation of an issuer available at Mollie.
+
+-}
+data Issuer = Issuer
+    { _id     :: Text.Text
+    -- ^Mollies reference to the issuer.
+    , _name   :: Text.Text
+    -- ^The issuers full name.
+    , _method :: PaymentMethod
+    -- ^The payment method this issuer belongs to. Currently only Ideal is supported.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1
+        }
+    ''Issuer)
 
 Lens.makeFieldsNoPrefix ''Issuer
 

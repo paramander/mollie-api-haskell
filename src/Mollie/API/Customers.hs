@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -12,7 +13,6 @@ module Mollie.API.Customers
     , getCustomers
     , createCustomerPayment
     , getCustomerPayments
-    -- Re-export relevant types
     , NewCustomer (..)
     , Customer (..)
     -- Lens getters
@@ -27,15 +27,82 @@ module Mollie.API.Customers
     ) where
 
 import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
-import           Data.Default        (def)
+import qualified Data.Aeson          as Aeson
+import qualified Data.Aeson.TH       as Aeson
+import           Data.Default        (Default, def)
 import           Data.Monoid
 import qualified Data.Text           as Text
+import qualified Data.Time           as Time
 import           Mollie.API.Internal
+import           Mollie.API.Methods  (PaymentMethod (..))
 import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 import qualified Network.HTTP.Types  as HTTP
 
+{-|
+  Structure to request a new customer with.
+
+  For more information see: https://www.mollie.com/en/docs/reference/customers/create.
+-}
+data NewCustomer = NewCustomer
+    { _name     :: Maybe Text.Text
+    -- ^Set the full name of the customer.
+    , _email    :: Maybe Text.Text
+    -- ^Set the email address.
+    , _locale   :: Maybe Text.Text
+    -- ^Set the language to use for this customer during checkout,
+    , _metadata :: Maybe Aeson.Value
+    -- ^Set any additional data in JSON format.
+    }
+    deriving (Show)
+
+instance Default NewCustomer where
+    def = NewCustomer
+        { _name = def
+        , _email = def
+        , _locale = def
+        , _metadata = def
+        }
+
+$(Aeson.deriveToJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1
+        }
+    ''NewCustomer)
+
 makeFieldsNoPrefix ''NewCustomer
+
+{-|
+  Representation of an customer available at Mollie.
+
+  For more information see: https://www.mollie.com/en/docs/reference/customers/get.
+-}
+data Customer = Customer
+    { _id                  :: Text.Text
+    -- ^Mollies reference to the customer.
+    , _mode                :: Mode
+    -- ^The mode in which this customer was created.
+    , _name                :: Maybe Text.Text
+    -- ^The customers full name.
+    , _email               :: Maybe Text.Text
+    -- ^The cusomters email address.
+    , _locale              :: Maybe Text.Text
+    -- ^The locale used for this customer during checkout.
+    , _metadata            :: Maybe Aeson.Value
+    -- ^Custom privided data for this customer.
+    , _recentlyUsedMethods :: [PaymentMethod]
+    -- ^The payment methods this customer recently used.
+    , _createdAt           :: Time.UTCTime
+    -- ^The creation date of this customer.
+    }
+    deriving (Show)
+
+$(Aeson.deriveFromJSON
+    Aeson.defaultOptions
+        { Aeson.fieldLabelModifier = drop 1
+        }
+    ''Customer)
+
 makeFieldsNoPrefix ''Customer
 
 {-|
@@ -96,7 +163,7 @@ getCustomers offset count = get path
   For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
 -}
 createCustomerPayment :: Text.Text -- ^ customerId
-                      -> NewPayment -> Mollie (Either ResponseError Payment)
+                      -> Payments.NewPayment -> Mollie (Either ResponseError Payments.Payment)
 createCustomerPayment customerId newPayment =
     decodeResult <$> send HTTP.methodPost path newPayment
     where
@@ -110,7 +177,7 @@ createCustomerPayment customerId newPayment =
 getCustomerPayments :: Text.Text -- ^ customerId
                     -> Int -- ^ offset
                     -> Int -- ^ count
-                    -> Mollie (Either ResponseError (List Payment))
+                    -> Mollie (Either ResponseError (List Payments.Payment))
 getCustomerPayments customerId offset count = get path
     where
         path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath] <> query
