@@ -168,13 +168,11 @@ createPaymentRefund _paymentId newRefund =
   For more information see: https://www.mollie.com/en/docs/reference/refunds/list.
 -}
 getPaymentRefunds :: Text.Text -- ^ _paymentId
-                  -> Int -- ^ offset
-                  -> Int -- ^ count
+                  -> [QueryParam] -- ^ queryParams
                   -> Mollie (Either ResponseError (List Refund))
-getPaymentRefunds _paymentId offset count = get path
+getPaymentRefunds _paymentId queryParams = get path
     where
-        path = Text.intercalate "/" [Payments.paymentsPath, _paymentId, refundsPath] <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        path = Text.intercalate "/" [Payments.paymentsPath, _paymentId, refundsPath] <> toText queryParams
 
 {-|
   Handler to cancel a refund by its identifier for a specific payment.

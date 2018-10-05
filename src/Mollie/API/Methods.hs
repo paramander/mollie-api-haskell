@@ -129,23 +129,19 @@ methodsPath = "methods"
   For more information see: https://www.mollie.com/en/docs/reference/methods/get.
 -}
 getMethod :: PaymentMethod
-          -> Text.Text -- ^ locale
+          -> [QueryParam] -- ^ queryParams
           -> Mollie (Either ResponseError Method)
-getMethod methodId locale = get path
+getMethod methodId queryParams = get path
     where
-        path = Text.intercalate "/" [methodsPath, toText methodId] <> query
-        query = "?locale=" <> locale
+        path = Text.intercalate "/" [methodsPath, toText methodId] <> toText queryParams
 
 {-|
   Handler to get a list of payment methods. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payment methods returned with a single call is 250.
 
   For more information see: https://www.mollie.com/en/docs/reference/methods/list.
 -}
-getMethods :: Text.Text -- ^ locale
-           -> Int -- ^ offset
-           -> Int -- ^ count
+getMethods :: [QueryParam] -- ^ queryParams
            -> Mollie (Either ResponseError (List Method))
-getMethods locale offset count = get path
+getMethods queryParams = get path
     where
-        path = methodsPath <> query
-        query = "?locale=" <> locale <> "&offset=" <> showT offset <> "&count=" <> showT count
+        path = methodsPath <> toText queryParams

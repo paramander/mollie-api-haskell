@@ -2,15 +2,15 @@
 
 module Mollie.API.Internal where
 
-import qualified Control.Monad.Reader as Reader
-import qualified Data.Aeson           as Aeson
-import qualified Data.ByteString.Lazy as ByteString
+import qualified Control.Monad.Reader   as Reader
+import qualified Data.Aeson             as Aeson
+import qualified Data.ByteString.Lazy   as ByteString
 import           Data.Monoid
-import qualified Data.Text            as Text
-import qualified Data.Text.Encoding   as Text
+import qualified Data.Text              as Text
+import qualified Data.Text.Encoding     as Text
 import           Mollie.API.Types
-import qualified Network.HTTP.Client  as HTTP
-import qualified Network.HTTP.Types   as HTTP
+import qualified Network.HTTP.Client    as HTTP
+import qualified Network.HTTP.Types     as HTTP
 
 {-|
   Environment to run requests to Mollie with.

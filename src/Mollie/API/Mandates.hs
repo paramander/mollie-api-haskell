@@ -214,10 +214,8 @@ getCustomerMandate customerId mandateId = get path
   For more information see: https://www.mollie.com/en/docs/reference/mandates/list.
 -}
 getCustomerMandates :: Text.Text -- ^ customerId
-                    -> Int -- ^ offset
-                    -> Int -- ^ count
+                    -> [QueryParam] -- ^ queryParams
                     -> Mollie (Either ResponseError (List Mandate))
-getCustomerMandates customerId offset count = get path
+getCustomerMandates customerId queryParams = get path
     where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath] <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath] <> toText queryParams

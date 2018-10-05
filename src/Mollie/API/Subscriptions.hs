@@ -188,11 +188,11 @@ createCustomerSubscription customerId newSubscription =
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
 -}
 getCustomerSubscription :: Text.Text -- ^ customerId
-                        -> Text.Text -- ^ subscriptionId
+                        -> Text.Text -- ^ _id
                         -> Mollie (Either ResponseError Subscription)
-getCustomerSubscription customerId subscriptionId = get path
+getCustomerSubscription customerId _id = get path
     where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, subscriptionId]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, _id]
 
 {-|
   Handler to get a list of subscriptions for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of subscriptions returned with a single call is 250.
@@ -200,13 +200,11 @@ getCustomerSubscription customerId subscriptionId = get path
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/list.
 -}
 getCustomerSubscriptions :: Text.Text -- ^ customerId
-                         -> Int -- ^ offset
-                         -> Int -- ^ count
+                         -> [QueryParam] -- ^ queryParams
                          -> Mollie (Either ResponseError (List Subscription))
-getCustomerSubscriptions customerId offset count = get path
+getCustomerSubscriptions customerId queryParams = get path
     where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath] <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath] <> toText queryParams
 
 {-|
   Handler to cancel a subscription by its identifier for a specific customer.
@@ -214,9 +212,9 @@ getCustomerSubscriptions customerId offset count = get path
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/delete.
 -}
 cancelCustomerSubscription :: Text.Text -- ^ customerId
-                           -> Text.Text -- ^ subscriptionId
+                           -> Text.Text -- ^ _id
                            -> Mollie (Either ResponseError Subscription)
-cancelCustomerSubscription customerId subscriptionId =
+cancelCustomerSubscription customerId _id =
     decodeResult <$> delete path
     where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, subscriptionId]
+        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, _id]

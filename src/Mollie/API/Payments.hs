@@ -23,7 +23,7 @@ module Mollie.API.Payments
     , mode
     , createdAt
     , status
-    , isCancelable
+    -- , isCancelable
     , paidAt
     , canceledAt
     , expiredAt
@@ -216,7 +216,7 @@ data Payment = Payment
     -- ^The date on which the payment was created.
     , _status           :: PaymentStatus
     -- ^The current status.
-    , _isCancelable     :: Bool
+    -- , _isCancelable     :: Bool
     -- ^Whether or not the payment can be canceled.
     , _paidAt           :: Maybe Time.UTCTime
     -- ^The date on which the payment was paid.
@@ -352,10 +352,8 @@ getPayment paymentId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/payments/list.
 -}
-getPayments :: Int -- ^ from
-            -> Int -- ^ limit
+getPayments :: [QueryParam] -- ^ queryParams
             -> Mollie (Either ResponseError (List Payment))
-getPayments from limit = get path
+getPayments queryParams = get path
     where
-        path = paymentsPath <> query
-        query = "?from=" <> showT from <> "&limit=" <> showT limit
+        path = paymentsPath <> toText queryParams

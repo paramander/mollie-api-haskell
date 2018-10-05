@@ -68,10 +68,8 @@ getIssuer issuerId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/issuers/list.
 -}
-getIssuers :: Int -- ^ offset
-           -> Int -- ^ count
+getIssuers :: [QueryParam] -- ^ queryParams
            -> Mollie (Either ResponseError (List Issuer))
-getIssuers offset count = get path
+getIssuers queryParams = get path
     where
-        path = issuersPath <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        path = issuersPath <> toText queryParams

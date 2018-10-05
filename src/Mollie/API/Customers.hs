@@ -149,13 +149,11 @@ getCustomer customerId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list.
 -}
-getCustomers :: Int -- ^ offset
-             -> Int -- ^ count
+getCustomers :: [QueryParam] -- ^ queryParams
              -> Mollie (Either ResponseError (List Customer))
-getCustomers offset count = get path
+getCustomers queryParams = get path
     where
-        path = customersPath <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        path = customersPath <> toText queryParams
 
 {-|
   Handler to create a new payment for a specific customer.
@@ -175,10 +173,8 @@ createCustomerPayment customerId newPayment =
   For more information see: https://www.mollie.com/en/docs/reference/customers/list-payments.
 -}
 getCustomerPayments :: Text.Text -- ^ customerId
-                    -> Int -- ^ offset
-                    -> Int -- ^ count
+                    -> [QueryParam] -- ^ queryParams
                     -> Mollie (Either ResponseError (List Payments.Payment))
-getCustomerPayments customerId offset count = get path
+getCustomerPayments customerId queryParams = get path
     where
-        path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath] <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+        path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath] <> toText queryParams

@@ -15,6 +15,7 @@ import qualified Data.Aeson.Types    as Aeson
 import qualified Data.Currency       as Currency
 import           Data.Default        (Default, def)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.Monoid         ((<>))
 import qualified Data.Text           as Text
 import qualified Data.Time           as Time
 import           GHC.Generics
@@ -225,3 +226,16 @@ data ResponseError
     | ServerError Int
     | UnexpectedResponse Text.Text
     deriving (Show)
+
+{-|
+  For usage in API calls.
+-}
+data QueryParam = QueryParam Text.Text Text.Text
+
+queryParam :: Text.Text -> Text.Text -> QueryParam
+queryParam = QueryParam
+
+instance ToText [QueryParam] where
+    toText [] = mempty
+    toText params =
+        mappend "?" $ Text.intercalate "&" $ map (\(QueryParam paramName paramValue) -> paramName <> "=" <> paramValue) params
