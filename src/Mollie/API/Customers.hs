@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RecordWildCards        #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Customers
@@ -27,8 +28,10 @@ module Mollie.API.Customers
     ) where
 
 import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
+import           Data.Aeson          ((.!=), (.:), (.:?))
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
+import qualified Data.Aeson.Types    as Aeson
 import           Data.Default        (Default, def)
 import           Data.Monoid
 import qualified Data.Text           as Text
@@ -97,11 +100,19 @@ data Customer = Customer
     }
     deriving (Show)
 
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
-        }
-    ''Customer)
+instance Aeson.FromJSON Customer where
+    parseJSON (Aeson.Object o) = do
+        _id <- o .: "id"
+        _mode <- o .: "mode"
+        _name <- o .:? "name"
+        _email <- o .:? "email"
+        _locale <- o .:? "locale"
+        _metadata <- o .:? "metadata"
+        _recentlyUsedMethods <- o .:? "recentlyUsedMethods" .!= []
+        _createdAt <- o .: "createdAt"
+
+        return Customer{..}
+    parseJSON invalid = Aeson.typeMismatch "Customer" invalid
 
 makeFieldsNoPrefix ''Customer
 

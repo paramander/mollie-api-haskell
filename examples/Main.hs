@@ -48,6 +48,7 @@ main = do
         get "/payments-history" paymentsHistoryHandler
         get "/list-activated-methods" listActivatedMethodsHandler
         get "/refund-payment" refundPaymentHandler
+        get "/list-customers" getCustomersHandler
         get "/new-customer" newCustomerHandler
         get "/new-customer-payment" newCustomerPaymentHandler
         get "/customer-payments-history" customerPaymentsHistoryHandler
@@ -219,6 +220,25 @@ paymentsHistoryHandler = do
                         th_ "Status"
                     tbody_ $
                         mapM_ paymentTag payments
+        Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
+
+getCustomersHandler :: Handler ()
+getCustomersHandler = do
+    p <- withMollie $ Customers.getCustomers [queryParam "limit" "250"]
+    case p of
+        Right customerList -> do
+            let customers = view embedded customerList
+                customerTag :: Customers.Customer -> Html ()
+                customerTag customer = tr_ $ do
+                    td_ (toHtml $ view Customers.id customer)
+                    td_ (toHtml $ fromMaybe "-" $ view Customers.email customer)
+            html $ renderText $
+                table_ $ do
+                    thead_ $ tr_ $ do
+                        th_ "ID"
+                        th_ "Email"
+                    tbody_ $
+                        mapM_ customerTag customers
         Left err -> raise $ TL.fromStrict $ "API call failed: " <> pack (show err)
 
 listActivatedMethodsHandler :: Handler ()

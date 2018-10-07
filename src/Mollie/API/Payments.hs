@@ -4,6 +4,8 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE RecordWildCards        #-}
+
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Payments
@@ -23,7 +25,7 @@ module Mollie.API.Payments
     , mode
     , createdAt
     , status
-    -- , isCancelable
+    , isCancelable
     , paidAt
     , canceledAt
     , expiredAt
@@ -57,8 +59,10 @@ module Mollie.API.Payments
     ) where
 
 import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
+import           Data.Aeson          ((.!=), (.:), (.:?))
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
+import qualified Data.Aeson.Types    as Aeson
 import           Data.Default        (Default, def)
 import           Data.Monoid
 import qualified Data.Text           as Text
@@ -216,7 +220,7 @@ data Payment = Payment
     -- ^The date on which the payment was created.
     , _status           :: PaymentStatus
     -- ^The current status.
-    -- , _isCancelable     :: Bool
+    , _isCancelable     :: Bool
     -- ^Whether or not the payment can be canceled.
     , _paidAt           :: Maybe Time.UTCTime
     -- ^The date on which the payment was paid.
@@ -265,11 +269,38 @@ data Payment = Payment
     }
     deriving (Show)
 
-$(Aeson.deriveFromJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
-        }
-    ''Payment)
+instance Aeson.FromJSON Payment where
+    parseJSON (Aeson.Object o) = do
+        _id <- o .: "id"
+        _mode <- o .: "mode"
+        _createdAt <- o .: "createdAt"
+        _status <- o .: "status"
+        _paidAt <- o .:? "paidAt"
+        _isCancelable <- o .:? "isCancelable" .!= False
+        _canceledAt <- o .:? "canceledAt"
+        _expiredAt <- o .:? "expiredAt"
+        _failedAt <- o .:? "failedAt"
+        _amount <- o .: "amount"
+        _amountRefunded <- o .:? "amountRefunded"
+        _amountRemaining <- o .:? "amountRemaining"
+        _description <- o .: "description"
+        _redirectUrl <- o .:? "redirectUrl"
+        _webhookUrl <- o .:? "webhookUrl"
+        _method <- o .:? "method"
+        _metadata <- o .: "metadata"
+        _locale <- o .:? "locale"
+        _countryCode <- o .:? "countryCode"
+        _profileId <- o .: "profileId"
+        _settlementAmount <- o .:? "settlementAmount"
+        _settlementId <- o .:? "settlementId"
+        _customerId <- o .:? "customerId"
+        _sequenceType <- o .:? "sequenceType"
+        _mandateId <- o .:? "mandateId"
+        _subscriptionId <- o .:? "subscriptionId"
+        _details <- o .:? "details"
+
+        return Payment{..}
+    parseJSON invalid = Aeson.typeMismatch "Payment" invalid
 
 makeFieldsNoPrefix ''Payment
 
