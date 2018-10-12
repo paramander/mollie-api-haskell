@@ -21,7 +21,6 @@ library
                      , Mollie.API.Payments
                      , Mollie.API.Refunds
                      , Mollie.API.Methods
-                     , Mollie.API.Issuers
                      , Mollie.API.Customers
                      , Mollie.API.Mandates
                      , Mollie.API.Subscriptions
