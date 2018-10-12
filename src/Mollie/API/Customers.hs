@@ -160,7 +160,7 @@ getCustomer customerId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list.
 -}
-getCustomers :: [QueryParam] -- ^ queryParams
+getCustomers :: [QueryParam] -- ^ query params to pass to the list API
              -> Mollie (Either ResponseError (List Customer))
 getCustomers queryParams = get path
     where

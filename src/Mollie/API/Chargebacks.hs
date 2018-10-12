@@ -7,6 +7,10 @@
 module Mollie.API.Chargebacks
     (
     Chargeback (..)
+    , chargebacksPath
+    , getChargebacks
+    , getPaymentChargebacks
+    , getChargeback
     -- Lens getters
     , Mollie.API.Chargebacks.id
     , amount
@@ -16,11 +20,14 @@ module Mollie.API.Chargebacks
     , paymentId
     ) where
 
-import           Control.Lens       (makeFieldsNoPrefix)
-import qualified Data.Aeson         as Aeson
-import qualified Data.Aeson.TH      as Aeson
-import qualified Data.Text          as Text
-import qualified Data.Time          as Time
+import           Control.Lens        (makeFieldsNoPrefix)
+import qualified Data.Aeson          as Aeson
+import qualified Data.Aeson.TH       as Aeson
+import           Data.Monoid
+import qualified Data.Text           as Text
+import qualified Data.Time           as Time
+import           Mollie.API.Internal
+import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 
 data Chargeback = Chargeback
@@ -45,3 +52,45 @@ $(Aeson.deriveFromJSON
      ''Chargeback)
 
 makeFieldsNoPrefix ''Chargeback
+
+{-|
+  Chargeback resource's path, relative to API's versioned URL.
+-}
+chargebacksPath :: Text.Text
+chargebacksPath = "chargebacks"
+
+{-|
+  Handler to get a list of chargebacks. Because the list endpoint is paginated, this handler requires an offset and a limit. The maximum amount of chargebacks returned with a single call is 250.
+
+  For more information see: https://mollie.com/en/docs/reference/chargebacks/list
+-}
+getChargebacks :: [QueryParam] -- ^ query params to pass to the list API
+               -> Mollie (Either ResponseError (List Chargeback))
+getChargebacks queryParams = get path
+    where
+        path = chargebacksPath <> toText queryParams
+
+{-|
+  Helper handler to get a list of chargebacks of a single payment. Because the list endpoint is paginated, this handler requires an offset and a limit. The maximum amount of chargebacks returned with a single call is 250.
+
+  For more information see: https://mollie.com/en/docs/reference/chargebacks/list
+-}
+getPaymentChargebacks :: [QueryParam] -- ^ query params to pass to the list API
+                      -> Text.Text -- ^ payment id
+                      -> Mollie (Either ResponseError (List Chargeback))
+getPaymentChargebacks queryParams paymentId_ = get path
+    where
+        path = chargebacksPath <> toText params
+        params = (QueryParam "paymentId" paymentId_) : queryParams
+
+{-|
+  Handler to get a chargeback of a payment by its identifier.
+
+  For more information see: https://mollie.com/en/docs/reference/chargebacks/get.
+-}
+getChargeback :: Text.Text
+              -> Text.Text
+              -> Mollie (Either ResponseError Chargeback)
+getChargeback paymentId_ chargebackId_ = get path
+    where
+        path = Text.intercalate "/" [Payments.paymentsPath, paymentId_, chargebacksPath, chargebackId_]
