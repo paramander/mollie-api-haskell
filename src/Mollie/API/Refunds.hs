@@ -109,7 +109,7 @@ data Refund = Refund
     -- ^The description of the refund that may be shown to your customer.
     , _status           :: RefundStatus
     -- ^The status in which this refund currently is.
-    , _paymentId        :: Text.Text
+    , _paymentId        :: PaymentId
     -- ^The unique identifier of the payment this refund was created for.
     , _createdAt        :: Time.UTCTime
     -- ^The date and time the refund was issued.
@@ -154,7 +154,7 @@ newRefund = def
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
 -}
-createPaymentRefund :: Text.Text -- ^ _paymentId
+createPaymentRefund :: PaymentId -- ^ _paymentId
                     -> NewRefund
                     -> Mollie (Either ResponseError Refund)
 createPaymentRefund _paymentId newRefund =
@@ -167,7 +167,7 @@ createPaymentRefund _paymentId newRefund =
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/list.
 -}
-getPaymentRefunds :: Text.Text -- ^ _paymentId
+getPaymentRefunds :: PaymentId -- ^ _paymentId
                   -> [QueryParam] -- ^ queryParams
                   -> Mollie (Either ResponseError (List Refund))
 getPaymentRefunds _paymentId queryParams = get path
@@ -181,8 +181,8 @@ getPaymentRefunds _paymentId queryParams = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/delete.
 -}
-cancelPaymentRefund :: Text.Text -- ^ _paymentId
-                    -> Text.Text -- ^ _id
+cancelPaymentRefund :: PaymentId -- ^ _paymentId
+                    -> RefundId -- ^ _id
                     -> Mollie (Maybe ResponseError)
 cancelPaymentRefund _paymentId _id =
     ignoreResult <$> delete path
@@ -194,8 +194,8 @@ cancelPaymentRefund _paymentId _id =
 
   For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
 -}
-getPaymentRefund :: Text.Text -- ^ _paymentId
-                 -> Text.Text -- ^ _id
+getPaymentRefund :: PaymentId -- ^ _paymentId
+                 -> RefundId -- ^ _id
                  -> Mollie (Either ResponseError Refund)
 getPaymentRefund _paymentId _id = get path
     where

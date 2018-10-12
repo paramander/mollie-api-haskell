@@ -19,6 +19,7 @@ module Mollie.API.Payments
     , PaymentMethod (..)
     , SequenceType (..)
     , NewPayment (..)
+    , PaymentId
     , Payment (..)
     -- Lens getters
     , Mollie.API.Payments.id
@@ -144,9 +145,9 @@ data NewPayment = NewPayment
     -- ^Force the payment screen language.
     , _sequenceType      :: Maybe SequenceType
     -- ^Set the equence type, default to `Oneoff`. For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
-    , _customerId        :: Maybe Text.Text
+    , _customerId        :: Maybe CustomerId
     -- ^Set a customer account for this payment.
-    , _mandateId         :: Maybe Int
+    , _mandateId         :: Maybe MandateId
     -- ^Set the ID of a specific Mandate. May be supplied to indicate which of the consumer’s accounts should be credited.
     -- IDEAL fields
     , _issuer            :: Maybe Text.Text
@@ -212,7 +213,7 @@ makeFieldsNoPrefix ''NewPayment
   For more information see: https://www.mollie.com/nl/docs/reference/payments/get.
 -}
 data Payment = Payment
-    { _id               :: Text.Text
+    { _id               :: PaymentId
     -- ^Mollie's reference to the payment resource.
     , _mode             :: Mode
     -- ^The mode used to create this payment.
@@ -256,13 +257,13 @@ data Payment = Payment
     -- ^The amount that will be settled to your account.
     , _settlementId     :: Maybe Text.Text
     -- ^The identifier referring to the settlement this payment was settled with.
-    , _customerId       :: Maybe Text.Text
+    , _customerId       :: Maybe CustomerId
     -- ^Identifier for the customer this payment was created for.
     , _sequenceType     :: Maybe SequenceType
     -- ^Indicates which type of payment this is in a recurring sequence. Set to oneoff by default.
-    , _mandateId        :: Maybe Text.Text
+    , _mandateId        :: Maybe MandateId
     -- ^Identifier for the mandate used for this payment if it's recurring.
-    , _subscriptionId   :: Maybe Text.Text
+    , _subscriptionId   :: Maybe SubscriptionId
     -- ^Identifier for the subscription used for this payment.
     -- TODO: Add payment specific details, see: https://www.mollie.com/nl/docs/reference/payments/get
     , _details          :: Maybe Aeson.Object

@@ -28,6 +28,13 @@ import qualified Text.Printf         as Printf
 class ToText a where
     toText :: a -> Text.Text
 
+type CustomerId = Text.Text
+type PaymentId = Text.Text
+type RefundId = Text.Text
+type SubscriptionId = Text.Text
+type ChargebackId = Text.Text
+type MandateId = Text.Text
+
 {-|
   In v2 endpoints, an amount object is always represented as follows:
 

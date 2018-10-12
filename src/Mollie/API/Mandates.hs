@@ -17,6 +17,7 @@ module Mollie.API.Mandates
     , NewMandate (..)
     , MandateStatus (..)
     , MandateDetails (..)
+    , MandateId
     , Mandate (..)
     -- Lens getters
     , Mollie.API.Mandates.id
@@ -143,7 +144,7 @@ makeFieldsNoPrefix ''MandateDetails
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
 data Mandate = Mandate
-    { _id               :: Text.Text
+    { _id               :: MandateId
     -- ^Mollies reference to the mandate.
     , _status           :: MandateStatus
     -- ^The status of the mandate.
@@ -189,7 +190,7 @@ newMandate _method _consumerName _consumerAccount =
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
 -}
-createCustomerMandate :: Text.Text -- ^ customerId
+createCustomerMandate :: CustomerId -- ^ customerId
                       -> NewMandate -> Mollie (Either ResponseError Mandate)
 createCustomerMandate customerId newMandate =
     decodeResult <$> send HTTP.methodPost path newMandate
@@ -201,8 +202,8 @@ createCustomerMandate customerId newMandate =
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
-getCustomerMandate :: Text.Text -- ^ customerId
-                   -> Text.Text -- ^ mandateId
+getCustomerMandate :: CustomerId -- ^ customerId
+                   -> MandateId -- ^ mandateId
                    -> Mollie (Either ResponseError Mandate)
 getCustomerMandate customerId mandateId = get path
     where
@@ -213,7 +214,7 @@ getCustomerMandate customerId mandateId = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/mandates/list.
 -}
-getCustomerMandates :: Text.Text -- ^ customerId
+getCustomerMandates :: CustomerId -- ^ customerId
                     -> [QueryParam] -- ^ queryParams
                     -> Mollie (Either ResponseError (List Mandate))
 getCustomerMandates customerId queryParams = get path

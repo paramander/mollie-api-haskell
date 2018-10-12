@@ -175,7 +175,7 @@ newSubscription _amount _interval _description =
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
 -}
-createCustomerSubscription :: Text.Text -- ^ customerId
+createCustomerSubscription :: CustomerId -- ^ customerId
                            -> NewSubscription -> Mollie (Either ResponseError Subscription)
 createCustomerSubscription customerId newSubscription =
     decodeResult <$> send HTTP.methodPost path newSubscription
@@ -187,8 +187,8 @@ createCustomerSubscription customerId newSubscription =
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
 -}
-getCustomerSubscription :: Text.Text -- ^ customerId
-                        -> Text.Text -- ^ _id
+getCustomerSubscription :: CustomerId -- ^ customerId
+                        -> SubscriptionId -- ^ _id
                         -> Mollie (Either ResponseError Subscription)
 getCustomerSubscription customerId _id = get path
     where
@@ -199,7 +199,7 @@ getCustomerSubscription customerId _id = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/list.
 -}
-getCustomerSubscriptions :: Text.Text -- ^ customerId
+getCustomerSubscriptions :: CustomerId -- ^ customerId
                          -> [QueryParam] -- ^ queryParams
                          -> Mollie (Either ResponseError (List Subscription))
 getCustomerSubscriptions customerId queryParams = get path
@@ -211,8 +211,8 @@ getCustomerSubscriptions customerId queryParams = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/delete.
 -}
-cancelCustomerSubscription :: Text.Text -- ^ customerId
-                           -> Text.Text -- ^ _id
+cancelCustomerSubscription :: CustomerId -- ^ customerId
+                           -> SubscriptionId -- ^ _id
                            -> Mollie (Either ResponseError Subscription)
 cancelCustomerSubscription customerId _id =
     decodeResult <$> delete path

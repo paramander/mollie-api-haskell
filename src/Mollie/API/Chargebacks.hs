@@ -5,8 +5,8 @@
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Chargebacks
-    (
-    Chargeback (..)
+    ( Chargeback (..)
+    , ChargebackId
     , chargebacksPath
     , getChargebacks
     , getPaymentChargebacks
@@ -31,7 +31,7 @@ import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 
 data Chargeback = Chargeback
-    { _id               :: Text.Text
+    { _id               :: ChargebackId
     -- ^Mollies reference to the chargeback.
     , _amount           :: Amount
     -- ^The amount charged back by the consumer.
@@ -41,7 +41,7 @@ data Chargeback = Chargeback
     -- ^The date and time the chargeback was issued.
     , _reversedAt       :: Maybe Time.UTCTime
     -- ^The date and time the chargeback was reversed.
-    , _paymentId        :: Text.Text
+    , _paymentId        :: PaymentId
     -- ^The unique identifier of the payment this chargeback was issued for.
     }
 
@@ -76,7 +76,7 @@ getChargebacks queryParams = get path
   For more information see: https://mollie.com/en/docs/reference/chargebacks/list
 -}
 getPaymentChargebacks :: [QueryParam] -- ^ query params to pass to the list API
-                      -> Text.Text -- ^ payment id
+                      -> PaymentId -- ^ payment id
                       -> Mollie (Either ResponseError (List Chargeback))
 getPaymentChargebacks queryParams paymentId_ = get path
     where
@@ -88,8 +88,8 @@ getPaymentChargebacks queryParams paymentId_ = get path
 
   For more information see: https://mollie.com/en/docs/reference/chargebacks/get.
 -}
-getChargeback :: Text.Text
-              -> Text.Text
+getChargeback :: PaymentId -- ^ payment id
+              -> ChargebackId -- ^ chargeback id
               -> Mollie (Either ResponseError Chargeback)
 getChargeback paymentId_ chargebackId_ = get path
     where

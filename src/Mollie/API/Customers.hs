@@ -15,6 +15,7 @@ module Mollie.API.Customers
     , createCustomerPayment
     , getCustomerPayments
     , NewCustomer (..)
+    , CustomerId
     , Customer (..)
     -- Lens getters
     , Mollie.API.Customers.id
@@ -81,7 +82,7 @@ makeFieldsNoPrefix ''NewCustomer
   For more information see: https://www.mollie.com/en/docs/reference/customers/get.
 -}
 data Customer = Customer
-    { _id                  :: Text.Text
+    { _id                  :: CustomerId
     -- ^Mollies reference to the customer.
     , _mode                :: Mode
     -- ^The mode in which this customer was created.
@@ -149,7 +150,7 @@ createCustomer newCustomer =
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/get.
 -}
-getCustomer :: Text.Text -- ^ customerId
+getCustomer :: CustomerId -- ^ customerId
             -> Mollie (Either ResponseError Customer)
 getCustomer customerId = get path
     where
@@ -171,7 +172,7 @@ getCustomers queryParams = get path
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
 -}
-createCustomerPayment :: Text.Text -- ^ customerId
+createCustomerPayment :: CustomerId -- ^ customerId
                       -> Payments.NewPayment -> Mollie (Either ResponseError Payments.Payment)
 createCustomerPayment customerId newPayment =
     decodeResult <$> send HTTP.methodPost path newPayment
@@ -183,7 +184,7 @@ createCustomerPayment customerId newPayment =
 
   For more information see: https://www.mollie.com/en/docs/reference/customers/list-payments.
 -}
-getCustomerPayments :: Text.Text -- ^ customerId
+getCustomerPayments :: CustomerId -- ^ customerId
                     -> [QueryParam] -- ^ queryParams
                     -> Mollie (Either ResponseError (List Payments.Payment))
 getCustomerPayments customerId queryParams = get path
