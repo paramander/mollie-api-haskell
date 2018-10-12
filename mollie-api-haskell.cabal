@@ -25,6 +25,7 @@ library
                      , Mollie.API.Customers
                      , Mollie.API.Mandates
                      , Mollie.API.Subscriptions
+                     , Mollie.API.Chargebacks
   other-modules:       Mollie.API.Internal
                      , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
@@ -58,6 +59,7 @@ test-suite mollie-test
                      , currency-codes >= 3.0 && < 4
                      , lens
                      , data-default
+                     , time >= 1.5 && < 2
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

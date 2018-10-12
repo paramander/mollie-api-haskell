@@ -5,9 +5,12 @@ import           Data.List
 import           Data.Ord
 
 import           Control.Lens             (view, (&), (.~))
+import           Control.Monad.IO.Class   (liftIO)
 import qualified Data.Currency            as Currency
 import           Data.Default             (def)
+import qualified Data.Time                as Time
 import qualified Fixtures
+import qualified Mollie.API.Chargebacks   as Chargebacks
 import qualified Mollie.API.Customers     as Customers
 import qualified Mollie.API.Mandates      as Mandates
 import qualified Mollie.API.Payments      as Payments
@@ -24,6 +27,7 @@ tests = testGroup "Tests"
   , refundTests
   , subscriptionTests
   , mandateTests
+  , chargebackTests
   ]
 
 paymentTests = testGroup "Payment tests"
@@ -93,4 +97,19 @@ mandateTests = testGroup "Mandate tests"
       view Mandates.consumerName details @?= Just "John Doe"
       view Mandates.consumerAccount details @?= Just "NL55INGB0000000000"
       view Mandates.consumerBic details @?= Just "INGBNL2A"
+  ]
+
+chargebackTests = testGroup "Chargeback tests"
+  [ testCase "Chargeback list count" $ do
+      chargebackList <- Fixtures.chargebacks
+      view Mollie.count chargebackList @?= 1
+  , testCase "Chargeback fields" $ do
+      [chargeback] <- fmap (view Mollie.embedded) Fixtures.chargebacks
+      -- Resolves to 2018-03-14T17:00:52
+      let time = Time.UTCTime (Time.fromGregorian 2018 3 14) (17*60*60 + 0*60 + 52)
+      view Chargebacks.amount chargeback @?= (def & Mollie.value .~ "43.38" & Mollie.currency .~ Currency.USD)
+      view Chargebacks.settlementAmount chargeback @?= Just (def & Mollie.value .~ "35.07")
+      view Chargebacks.createdAt chargeback @?= time
+      view Chargebacks.reversedAt chargeback @?= Nothing
+      view Chargebacks.paymentId chargeback @?= "tr_WDqYK6vllg"
   ]

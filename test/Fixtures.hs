@@ -4,6 +4,7 @@ import           Data.Aeson               (decode, eitherDecode)
 import           Data.Aeson.Types         (FromJSON)
 import qualified Data.ByteString.Lazy     as BL
 import           Data.Maybe               (fromMaybe)
+import qualified Mollie.API.Chargebacks   as Chargebacks
 import qualified Mollie.API.Customers     as Customers
 import qualified Mollie.API.Mandates      as Mandates
 import qualified Mollie.API.Payments      as Payments
@@ -30,6 +31,10 @@ subscriptions =
 mandates :: IO (Mollie.List Mandates.Mandate)
 mandates =
     readJSONFile "test/fixtures/customers_mandates.json"
+
+chargebacks :: IO (Mollie.List Chargebacks.Chargeback)
+chargebacks =
+    readJSONFile "test/fixtures/chargebacks.json"
 
 readJSONFile :: (FromJSON a) => FilePath -> IO a
 readJSONFile path = do
