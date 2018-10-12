@@ -59,19 +59,19 @@ module Mollie.API.Payments
     , customerReference
     ) where
 
-import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
-import           Data.Aeson          ((.!=), (.:), (.:?))
-import qualified Data.Aeson          as Aeson
-import qualified Data.Aeson.TH       as Aeson
-import qualified Data.Aeson.Types    as Aeson
-import           Data.Default        (Default, def)
+import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
+import           Data.Aeson           ((.!=), (.:), (.:?))
+import qualified Data.Aeson           as Aeson
+import qualified Data.Aeson.TH        as Aeson
+import qualified Data.Aeson.Types     as Aeson
+import           Data.Default         (Default, def)
 import           Data.Monoid
-import qualified Data.Text           as Text
-import qualified Data.Time           as Time
+import qualified Data.Text            as Text
+import qualified Data.Time            as Time
 import           Mollie.API.Internal
-import           Mollie.API.Methods  (PaymentMethod (..))
+import           Mollie.API.Methods   (PaymentMethod (..))
 import           Mollie.API.Types
-import qualified Network.HTTP.Types  as HTTP
+import qualified Network.HTTP.Types   as HTTP
 
 {-|
   All possible statusses which can be assigned to a payment.
