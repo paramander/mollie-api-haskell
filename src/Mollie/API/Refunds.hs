@@ -1,12 +1,15 @@
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeOperators          #-}
 
 module Mollie.API.Refunds
-    ( refundsPath
+    ( RefundAPI
     , getRefunds
     , newRefund
     , createPaymentRefund
@@ -30,12 +33,17 @@ import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
 import           Data.Default        (Default, def)
 import           Data.Monoid
+import           Data.Proxy          (Proxy (..))
 import qualified Data.Text           as Text
 import qualified Data.Time           as Time
+import           GHC.Generics        (Generic)
 import           Mollie.API.Internal
 import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 import qualified Network.HTTP.Types  as HTTP
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
 
 {-|
   Structure to request a refund.
@@ -124,79 +132,16 @@ $(Aeson.deriveFromJSON
 
 makeFieldsNoPrefix ''Refund
 
-{-|
-  Refund resource's path, relative to API's versioned url or to a Payment resource url.
--}
-refundsPath :: Text.Text
-refundsPath = "refunds"
-
-{-|
-  Handler to get a list of refunds. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of refunds returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/refunds/list-all.
--}
-getRefunds :: Int -- ^ offset
-           -> Int -- ^ count
-           -> Mollie (Either ResponseError (List Refund))
-getRefunds offset count = get path
-    where
-        path = refundsPath <> query
-        query = "?offset=" <> showT offset <> "&count=" <> showT count
+data RefundAPI route = RefundAPI
+    { getRefunds          :: route :- "refunds" :> Get '[HalJSON] (List Refund)
+    , getPaymentRefunds   :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> Get '[HalJSON] (List Refund)
+    , createPaymentRefund :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> ReqBody '[JSON] NewRefund :> Post '[HalJSON] Refund
+    , getPaymentRefund    :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> Capture "id" RefundId :> Get '[HalJSON] Refund
+    , cancelPaymentRefund :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> Capture "id" RefundId :> DeleteNoContent '[HalJSON] NoContent
+    } deriving Generic
 
 {-|
   Helper to create a minimal new refund. Defaults to refunding the total amount for the targetted payment.
 -}
 newRefund :: NewRefund
 newRefund = def
-
-{-|
-  Handler to create a new refund for a specific payment.
-
-  For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
--}
-createPaymentRefund :: PaymentId -- ^ _paymentId
-                    -> NewRefund
-                    -> Mollie (Either ResponseError Refund)
-createPaymentRefund _paymentId newRefund =
-    decodeResult <$> send HTTP.methodPost path newRefund
-    where
-        path = Text.intercalate "/" [Payments.paymentsPath, _paymentId, refundsPath]
-
-{-|
-  Handler to get a list of refunds for a specific payment. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of refunds returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/refunds/list.
--}
-getPaymentRefunds :: PaymentId -- ^ _paymentId
-                  -> [QueryParam] -- ^ queryParams
-                  -> Mollie (Either ResponseError (List Refund))
-getPaymentRefunds _paymentId queryParams = get path
-    where
-        path = Text.intercalate "/" [Payments.paymentsPath, _paymentId, refundsPath] <> toText queryParams
-
-{-|
-  Handler to cancel a refund by its identifier for a specific payment.
-
-  This request only works on refunds which have not yet started processing.
-
-  For more information see: https://www.mollie.com/en/docs/reference/refunds/delete.
--}
-cancelPaymentRefund :: PaymentId -- ^ _paymentId
-                    -> RefundId -- ^ _id
-                    -> Mollie (Maybe ResponseError)
-cancelPaymentRefund _paymentId _id =
-    ignoreResult <$> delete path
-    where
-        path = Text.intercalate "/" [Payments.paymentsPath, _paymentId, refundsPath, _id]
-
-{-|
-  Handler to get a refund by its identifier for a specific payment.
-
-  For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
--}
-getPaymentRefund :: PaymentId -- ^ _paymentId
-                 -> RefundId -- ^ _id
-                 -> Mollie (Either ResponseError Refund)
-getPaymentRefund _paymentId _id = get path
-    where
-        path = Text.intercalate "/" [Payments.paymentsPath, _paymentId, refundsPath, _id]

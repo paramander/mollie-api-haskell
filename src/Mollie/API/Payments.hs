@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -5,11 +7,12 @@
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE TypeOperators          #-}
 
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Mollie.API.Payments
-    ( paymentsPath
+    ( PaymentAPI
     , newPayment
     , newRecurringPayment
     , createPayment
@@ -59,19 +62,24 @@ module Mollie.API.Payments
     , customerReference
     ) where
 
-import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
-import           Data.Aeson           ((.!=), (.:), (.:?))
-import qualified Data.Aeson           as Aeson
-import qualified Data.Aeson.TH        as Aeson
-import qualified Data.Aeson.Types     as Aeson
-import           Data.Default         (Default, def)
+import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
+import           Data.Aeson          ((.!=), (.:), (.:?))
+import qualified Data.Aeson          as Aeson
+import qualified Data.Aeson.TH       as Aeson
+import qualified Data.Aeson.Types    as Aeson
+import           Data.Default        (Default, def)
 import           Data.Monoid
-import qualified Data.Text            as Text
-import qualified Data.Time            as Time
+import           Data.Proxy          (Proxy (..))
+import qualified Data.Text           as Text
+import qualified Data.Time           as Time
+import           GHC.Generics        (Generic)
 import           Mollie.API.Internal
-import           Mollie.API.Methods   (PaymentMethod (..))
+import           Mollie.API.Methods  (PaymentMethod (..))
 import           Mollie.API.Types
-import qualified Network.HTTP.Types   as HTTP
+import qualified Network.HTTP.Types  as HTTP
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
 
 {-|
   All possible statusses which can be assigned to a payment.
@@ -306,12 +314,6 @@ instance Aeson.FromJSON Payment where
 makeFieldsNoPrefix ''Payment
 
 {-|
-  Payment resource's path, relative to API's versioned url or to a customer resource url.
--}
-paymentsPath :: Text.Text
-paymentsPath = "payments"
-
-{-|
   Helper to create a minimal new payment for normal use.
 -}
 newPayment :: Double -- ^ amount
@@ -357,35 +359,8 @@ newRecurringPayment _amount _description =
       & consumerAccount .~ Nothing
       & customerReference .~ Nothing
 
-{-|
-  Handler to create a new payment.
-
-  For more information see: https://www.mollie.com/en/docs/reference/payments/create.
--}
-createPayment :: NewPayment -> Mollie (Either ResponseError Payment)
-createPayment newPayment =
-    decodeResult <$> send HTTP.methodPost path newPayment
-    where
-        path = paymentsPath
-
-{-|
-  Handler to get a payment by its identifier.
-
-  For more information see: https://www.mollie.com/en/docs/reference/payments/get.
--}
-getPayment :: Text.Text -- ^ paymentId
-           -> Mollie (Either ResponseError Payment)
-getPayment paymentId = get path
-    where
-        path = Text.intercalate "/" [paymentsPath, paymentId]
-
-{-|
-  Handler to get a list of payment. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payments returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/payments/list.
--}
-getPayments :: [QueryParam] -- ^ queryParams
-            -> Mollie (Either ResponseError (List Payment))
-getPayments queryParams = get path
-    where
-        path = paymentsPath <> toText queryParams
+data PaymentAPI route = PaymentAPI
+    { getPayments   :: route :- "payments" :> Get '[HalJSON] (List Payment)
+    , createPayment :: route :- "payments" :> ReqBody '[JSON] NewPayment :> Post '[HalJSON] Payment
+    , getPayment    :: route :- "payments" :> Capture "id" PaymentId :> Get '[HalJSON] Payment
+    } deriving Generic

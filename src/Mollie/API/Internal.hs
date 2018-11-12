@@ -1,105 +1,87 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Mollie.API.Internal where
 
-import qualified Control.Monad.Reader   as Reader
-import qualified Data.Aeson             as Aeson
-import qualified Data.ByteString.Lazy   as ByteString
+import qualified Data.Aeson                as Aeson
+import qualified Data.ByteString           as ByteString hiding (pack)
+import qualified Data.ByteString.Char8     as ByteString
+import qualified Data.ByteString.Lazy      as LazyByteString
 import           Data.Monoid
-import qualified Data.Text              as Text
-import qualified Data.Text.Encoding     as Text
+import qualified Data.Text                 as Text
+import           Data.Typeable             (Typeable)
 import           Mollie.API.Types
-import qualified Network.HTTP.Client    as HTTP
-import qualified Network.HTTP.Types     as HTTP
+import qualified Network.HTTP.Client       as HTTP
+import qualified Network.HTTP.Client.TLS   as HTTP
+import           Network.HTTP.Media        ((//))
+import qualified Network.HTTP.Types        as HTTP
+import           Network.HTTP.Types.Header
+import           Servant.API
+import           Servant.API.ContentTypes  (eitherDecodeLenient)
+import           Servant.Client
 
-{-|
-  Environment to run requests to Mollie with.
--}
-data Env = Env
-    { env_key     :: Text.Text
-    , env_manager :: HTTP.Manager
-    }
+data HalJSON deriving Typeable
 
-{-|
-  Reader wrapper with Mollie Env.
--}
-type Mollie a = Reader.ReaderT Env IO a
+instance Accept HalJSON where
+    contentType _ = "application" // "hal+json"
 
-endpoint :: Text.Text
-endpoint = "https://api.mollie.com"
+instance Aeson.ToJSON a => MimeRender HalJSON a where
+    mimeRender _ = Aeson.encode
 
-version :: Text.Text
-version = "v2"
+instance Aeson.FromJSON a => MimeUnrender HalJSON a where
+    mimeUnrender _ = eitherDecodeLenient
 
-showT :: (Show a) => a -> Text.Text
-showT = Text.pack . show
+handleError :: ServantError -> ResponseError
+handleError failure =
+    case failure of
+        FailureResponse response ->
+            servantResponseToError (HTTP.statusCode $ responseStatusCode response) (responseBody response)
+        DecodeFailure expectedType response ->
+            UnexpectedResponse expectedType
+        UnsupportedContentType mediaType response ->
+            UnexpectedResponse (Text.pack $ "Unsupported media type " ++ show mediaType)
+        InvalidContentTypeHeader response ->
+            UnexpectedResponse (Text.pack "Invalid content type header")
+        ConnectionError explanation ->
+            UnexpectedResponse explanation
 
-initialRequest :: Text.Text -> Mollie (HTTP.Request)
-initialRequest path = do
-    api_key <- Reader.asks env_key
-    request <- HTTP.parseRequest . Text.unpack $ Text.intercalate "/" [endpoint, version, path]
-    return request
-        { HTTP.requestHeaders = [ ("Authorization", Text.encodeUtf8 $ "Bearer " <> api_key)
-                                , ("Accept", "application/json")
-                                ]
-        }
+servantResponseToError :: Int -> LazyByteString.ByteString -> ResponseError
+servantResponseToError status body
+    | elem status [400, 401, 403, 404, 405, 415, 422, 429] =
+      case Aeson.eitherDecode body of
+          Right err          -> ClientError status err
+          Left decodeFailure -> UnexpectedResponse (Text.pack decodeFailure)
+    | elem status [500, 502, 503, 504] =
+          ServerError status
+    | otherwise = UnexpectedResponse (Text.pack "Unhandled status code")
 
-execute :: HTTP.Request -> Mollie (Either ResponseError (Int, ByteString.ByteString))
-execute request = do
-    manager <- Reader.asks env_manager
-    response <- Reader.liftIO $ HTTP.httpLbs request manager
-    return $ handleStatus
-        (HTTP.statusCode $ HTTP.responseStatus response)
-        (HTTP.responseBody response)
-    where
-        handleStatus status body
-            | elem status [200, 201, 204] =
-                  Right (status, body)
-            | elem status [400, 401, 403, 404, 405, 415, 422, 429] =
-                  case Aeson.eitherDecode body of
-                      Right err -> Left $ ClientError status err
-                      Left decodeFailure -> Left $ UnexpectedResponse (Text.pack decodeFailure)
-            | elem status [500, 502, 503, 504] =
-                  Left $ ServerError status
-            | otherwise = Left $ UnexpectedResponse (Text.pack "Unhandled statuscode")
+createEnv :: String -> IO ClientEnv
+createEnv mollieKey = do
+    let _settings = HTTP.tlsManagerSettings { HTTP.managerModifyRequest = applyMollieHeaders mollieKey }
+    _manager <- HTTP.newManager _settings
+    _baseUrl <- parseBaseUrl "https://api.mollie.com"
+    return $ mkClientEnv _manager _baseUrl
 
-send :: (Aeson.ToJSON a)
-     => HTTP.Method
-     -> Text.Text
-     -> a
-     -> Mollie (Either ResponseError (Int, ByteString.ByteString))
-send method url reqBody = do
-    request <- initialRequest url
-    execute request
-        { HTTP.method      = method
-        , HTTP.requestBody = HTTP.RequestBodyLBS $ Aeson.encode reqBody
-        }
+applyMollieHeaders :: String -> HTTP.Request -> IO HTTP.Request
+applyMollieHeaders key req = return $ setHeader HTTP.hAuthorization (ByteString.pack $ "Bearer " ++ key) req
 
-get :: (Aeson.FromJSON a) => Text.Text -> Mollie (Either ResponseError a)
-get url = do
-    request <- initialRequest url
-    result <- execute request
-    return $ decodeResult result
+-- | Set the request headers.
+setHeaders :: RequestHeaders -> HTTP.Request -> HTTP.Request
+setHeaders hs req = req { HTTP.requestHeaders = hs }
 
-delete :: Text.Text -> Mollie (Either ResponseError (Int, ByteString.ByteString))
-delete url = do
-    request <- initialRequest url
-    execute request
-        { HTTP.method = HTTP.methodDelete
-        }
+-- | Set the request header by name, removing any other headers with the same
+-- name.
+setHeader :: HeaderName -> ByteString.ByteString -> HTTP.Request -> HTTP.Request
+setHeader n v req =
+  setHeaders (filter ((/= n) . fst) (HTTP.requestHeaders req) ++ [(n, v)]) req
 
-ignoreResult :: Either ResponseError (Int, ByteString.ByteString)
-             -> Maybe ResponseError
-ignoreResult result = case result of
-    Right _  -> Nothing
-    Left err -> Just err
+-- | Add headers to the request.
+addHeaders :: RequestHeaders -> HTTP.Request -> HTTP.Request
+addHeaders hs req = setHeaders (HTTP.requestHeaders req ++ hs) req
 
-decodeResult :: (Aeson.FromJSON a)
-             => Either ResponseError (Int, ByteString.ByteString)
-             -> Either ResponseError a
-decodeResult result = case result of
-    Right (_, body) ->
-        case Aeson.eitherDecode body of
-            Right resource -> Right resource
-            Left error     -> Left $ UnexpectedResponse (Text.pack error)
-    Left other -> Left other
+-- | Add a single header.
+addHeader :: HeaderName -> ByteString.ByteString -> HTTP.Request -> HTTP.Request
+addHeader n v = addHeaders [(n, v)]

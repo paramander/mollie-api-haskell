@@ -1,12 +1,15 @@
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeOperators          #-}
 
 module Mollie.API.Subscriptions
-    ( subscriptionsPath
+    ( SubscriptionAPI
     , newSubscription
     , createCustomerSubscription
     , getCustomerSubscription
@@ -35,13 +38,19 @@ import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import           Data.Default         (Default, def)
 import           Data.Monoid
+import           Data.Proxy           (Proxy (..))
 import qualified Data.Text            as Text
 import qualified Data.Time            as Time
+import           GHC.Generics         (Generic)
 import qualified Mollie.API.Customers as Customers
 import           Mollie.API.Internal
 import           Mollie.API.Methods   (PaymentMethod (..))
+import qualified Mollie.API.Payments  as Payments
 import           Mollie.API.Types
 import qualified Network.HTTP.Types   as HTTP
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
 
 {-|
   Structure to request a new subscription with.
@@ -148,11 +157,13 @@ $(Aeson.deriveFromJSON
 
 makeFieldsNoPrefix ''Subscription
 
-{-|
-  Subscriptions resource's path, relative to API's versioned customer resource url.
--}
-subscriptionsPath :: Text.Text
-subscriptionsPath = "subscriptions"
+data SubscriptionAPI route = SubscriptionAPI
+    { getCustomerSubscriptions   :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Get '[HalJSON] (List Subscription)
+    , createCustomerSubscription :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> ReqBody '[JSON] NewSubscription :> Post '[HalJSON] Subscription
+    , getCustomerSubscription    :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Capture "id" SubscriptionId :> Get '[HalJSON] Subscription
+    , cancelCustomerSubscription :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Capture "id" SubscriptionId :> DeleteNoContent '[HalJSON] NoContent
+    , getSubscriptionPayments    :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Capture "id" SubscriptionId :> "payments" :> Get '[HalJSON] (List Payments.Payment)
+    } deriving Generic
 
 {-|
   Helper to create a minimal new subscription. Defaults to an ongoing subscription.
@@ -169,52 +180,3 @@ newSubscription _amount _interval _description =
       & amount .~ (defaultAmount _amount)
       & interval .~ _interval
       & description .~ _description
-
-{-|
-  Handler to create a new subscription for a specific customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
--}
-createCustomerSubscription :: CustomerId -- ^ customerId
-                           -> NewSubscription -> Mollie (Either ResponseError Subscription)
-createCustomerSubscription customerId newSubscription =
-    decodeResult <$> send HTTP.methodPost path newSubscription
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath]
-
-{-|
-  Handler to get a subscription by its identifier from a specific customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
--}
-getCustomerSubscription :: CustomerId -- ^ customerId
-                        -> SubscriptionId -- ^ _id
-                        -> Mollie (Either ResponseError Subscription)
-getCustomerSubscription customerId _id = get path
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, _id]
-
-{-|
-  Handler to get a list of subscriptions for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of subscriptions returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/list.
--}
-getCustomerSubscriptions :: CustomerId -- ^ customerId
-                         -> [QueryParam] -- ^ queryParams
-                         -> Mollie (Either ResponseError (List Subscription))
-getCustomerSubscriptions customerId queryParams = get path
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath] <> toText queryParams
-
-{-|
-  Handler to cancel a subscription by its identifier for a specific customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/subscriptions/delete.
--}
-cancelCustomerSubscription :: CustomerId -- ^ customerId
-                           -> SubscriptionId -- ^ _id
-                           -> Mollie (Either ResponseError Subscription)
-cancelCustomerSubscription customerId _id =
-    decodeResult <$> delete path
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, subscriptionsPath, _id]

@@ -1,17 +1,20 @@
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeOperators          #-}
 
 module Mollie.API.Methods
-    ( methodsPath
-    , getMethod
+    ( getMethod
     , getMethods
     , PaymentMethod (..)
     , MethodImage (..)
     , Method (..)
+    , MethodAPI (..)
     -- Lens getters
     , Mollie.API.Methods.id
     , description
@@ -26,9 +29,15 @@ import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
 import qualified Data.Aeson.Types    as Aeson
 import           Data.Monoid
+import           Data.Proxy          (Proxy (..))
 import qualified Data.Text           as Text
+import           GHC.Generics        (Generic)
 import           Mollie.API.Internal
 import           Mollie.API.Types
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
+import           Servant.Client.Generic
 
 {-|
   All possible payment methods.
@@ -54,6 +63,9 @@ data PaymentMethod
 instance ToText PaymentMethod where
     toText (NewPaymentMethod text) = text
     toText a                       = Text.pack $ Aeson.camelTo2 '_' $ show a
+
+instance ToHttpApiData PaymentMethod where
+    toUrlPiece a = toText a
 
 instance Aeson.ToJSON PaymentMethod where
     toJSON = Aeson.String . toText
@@ -115,33 +127,7 @@ $(Aeson.deriveFromJSON
 
 Lens.makeFieldsNoPrefix ''Method
 
-{-|
-  Payment method resource's path, relative to API's versioned url.
--}
-methodsPath :: Text.Text
-methodsPath = "methods"
-
-{-|
-  Handler to get a payment method by its identifier.
-
-  Fails on payment methods which are not enabled.
-
-  For more information see: https://www.mollie.com/en/docs/reference/methods/get.
--}
-getMethod :: PaymentMethod
-          -> [QueryParam] -- ^ queryParams
-          -> Mollie (Either ResponseError Method)
-getMethod methodId queryParams = get path
-    where
-        path = Text.intercalate "/" [methodsPath, toText methodId] <> toText queryParams
-
-{-|
-  Handler to get a list of payment methods. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payment methods returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/methods/list.
--}
-getMethods :: [QueryParam] -- ^ queryParams
-           -> Mollie (Either ResponseError (List Method))
-getMethods queryParams = get path
-    where
-        path = methodsPath <> toText queryParams
+data MethodAPI route = MethodAPI
+    { getMethods :: route :- "methods" :> Get '[HalJSON] (List Method)
+    , getMethod  :: route :- "methods" :> Capture "id" PaymentMethod :> Get '[HalJSON] Method
+    } deriving Generic

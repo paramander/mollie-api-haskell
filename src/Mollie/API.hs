@@ -1,44 +1,85 @@
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 module Mollie.API
-    ( Mollie
-    , Env
+    ( mollieClient
+    , chargebackClient
+    , customerClient
+    , mandateClient
+    , methodClient
+    , paymentClient
+    , refundClient
+    , subscriptionClient
     , createEnv
     , runMollie
-    , Reader.liftIO
     ) where
 
-import qualified Control.Monad.Reader        as Reader
-import qualified Data.Text                   as Text
+import           Data.Proxy               (Proxy (..))
+import           GHC.Generics             (Generic)
+import           Mollie.API.Chargebacks   (ChargebackAPI)
+import           Mollie.API.Customers     (CustomerAPI)
 import           Mollie.API.Internal
-import qualified Network.HTTP.Client         as HTTP
-import qualified Network.HTTP.Client.OpenSSL as HTTP
-import qualified OpenSSL.Session             as OpenSSL
+import           Mollie.API.Mandates      (MandateAPI)
+import           Mollie.API.Methods       (MethodAPI)
+import           Mollie.API.Payments      (PaymentAPI)
+import           Mollie.API.Refunds       (RefundAPI)
+import           Mollie.API.Subscriptions (SubscriptionAPI)
+import           Mollie.API.Types         (ResponseError)
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
+import           Servant.Client.Generic
 -- import qualified Paths_mollie_api_haskell    as Self
 
-{-|
-  Create a new Env from a Mollie API key.
+data MollieAPI route = MollieAPI
+    { customerAPI     :: route :- ToServantApi CustomerAPI
+    , chargebackAPI   :: route :- ToServantApi ChargebackAPI
+    , methodAPI       :: route :- ToServantApi MethodAPI
+    , mandateAPI      :: route :- ToServantApi MandateAPI
+    , paymentAPI      :: route :- ToServantApi PaymentAPI
+    , refundAPI       :: route :- ToServantApi RefundAPI
+    , subscriptionAPI :: route :- ToServantApi SubscriptionAPI
+    } deriving Generic
 
-  This key should start with either `test_` or `live_`.
--}
-createEnv :: Text.Text -- ^ key
-          -> IO Env
-createEnv key = HTTP.withOpenSSL $ do
-    sslContext <- OpenSSL.context
-    -- TODO: re-enable cacert verification, disabled because it required the app to run on the build machine
-    -- OpenSSL.contextSetVerificationMode sslContext OpenSSL.VerifyPeer
-    --     { OpenSSL.vpFailIfNoPeerCert = True
-    --     , OpenSSL.vpClientOnce       = False
-    --     , OpenSSL.vpCallback         = Nothing
-    --     }
-    -- cacert <- Self.getDataFileName "data/cacert.pem"
-    -- OpenSSL.contextSetCAFile sslContext cacert
-    manager <- HTTP.newManager . HTTP.opensslManagerSettings $ return sslContext
-    return Env
-        { env_key     = key
-        , env_manager = manager
-        }
+type MollieServantAPI = "v2" :> ToServantApi MollieAPI
 
-{-|
-  Runs handlers with the provided environment against the Mollie API.
--}
-runMollie :: Env -> Mollie a -> IO a
-runMollie env query = Reader.runReaderT query env
+servantApi :: Proxy MollieServantAPI
+servantApi = Proxy
+
+chargebackClient :: ChargebackAPI (AsClientT ClientM)
+chargebackClient = fromServant $ chargebackAPI mollieClient
+
+customerClient :: CustomerAPI (AsClientT ClientM)
+customerClient = fromServant $ customerAPI mollieClient
+
+methodClient :: MethodAPI (AsClientT ClientM)
+methodClient = fromServant $ methodAPI mollieClient
+
+mandateClient :: MandateAPI (AsClientT ClientM)
+mandateClient = fromServant $ mandateAPI mollieClient
+
+paymentClient :: PaymentAPI (AsClientT ClientM)
+paymentClient = fromServant $ paymentAPI mollieClient
+
+refundClient :: RefundAPI (AsClientT ClientM)
+refundClient = fromServant $ refundAPI mollieClient
+
+subscriptionClient :: SubscriptionAPI (AsClientT ClientM)
+subscriptionClient = fromServant $ subscriptionAPI mollieClient
+
+mollieClient :: MollieAPI (AsClientT ClientM)
+mollieClient = fromServant $ client servantApi
+
+runMollie :: ClientEnv -> ClientM a -> IO (Either ResponseError a)
+runMollie env apiFunction = do
+    res <- runClientM apiFunction env
+    case res of
+        Left failure -> do
+            return $ Left $ handleError failure
+        Right success ->
+            return $ Right success

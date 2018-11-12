@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -5,9 +7,10 @@
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RecordWildCards        #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeOperators          #-}
 
 module Mollie.API.Customers
-    ( customersPath
+    ( CustomerAPI
     , newCustomer
     , createCustomer
     , getCustomer
@@ -35,13 +38,18 @@ import qualified Data.Aeson.TH       as Aeson
 import qualified Data.Aeson.Types    as Aeson
 import           Data.Default        (Default, def)
 import           Data.Monoid
+import           Data.Proxy          (Proxy (..))
 import qualified Data.Text           as Text
 import qualified Data.Time           as Time
+import           GHC.Generics        (Generic)
 import           Mollie.API.Internal
 import           Mollie.API.Methods  (PaymentMethod (..))
 import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 import qualified Network.HTTP.Types  as HTTP
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
 
 {-|
   Structure to request a new customer with.
@@ -118,12 +126,6 @@ instance Aeson.FromJSON Customer where
 makeFieldsNoPrefix ''Customer
 
 {-|
-  Customer resource's path, relative to API's versioned url.
--}
-customersPath :: Text.Text
-customersPath = "customers"
-
-{-|
   Helper to create a minimal new customer.
 -}
 newCustomer :: Text.Text -- ^ name
@@ -134,59 +136,10 @@ newCustomer _name _email =
       & name .~ Just _name
       & email .~ Just _email
 
-{-|
-  Handler to create a new customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/create.
--}
-createCustomer :: NewCustomer -> Mollie (Either ResponseError Customer)
-createCustomer newCustomer =
-    decodeResult <$> send HTTP.methodPost path newCustomer
-    where
-        path = customersPath
-
-{-|
-  Handler to get a customer by its identifier.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/get.
--}
-getCustomer :: CustomerId -- ^ customerId
-            -> Mollie (Either ResponseError Customer)
-getCustomer customerId = get path
-    where
-        path = Text.intercalate "/" [customersPath, customerId]
-
-{-|
-  Handler to get a list of customers. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of customers returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/list.
--}
-getCustomers :: [QueryParam] -- ^ query params to pass to the list API
-             -> Mollie (Either ResponseError (List Customer))
-getCustomers queryParams = get path
-    where
-        path = customersPath <> toText queryParams
-
-{-|
-  Handler to create a new payment for a specific customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/create-payment.
--}
-createCustomerPayment :: CustomerId -- ^ customerId
-                      -> Payments.NewPayment -> Mollie (Either ResponseError Payments.Payment)
-createCustomerPayment customerId newPayment =
-    decodeResult <$> send HTTP.methodPost path newPayment
-    where
-        path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath]
-
-{-|
-  Handler to get a list of payments for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of payments returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/list-payments.
--}
-getCustomerPayments :: CustomerId -- ^ customerId
-                    -> [QueryParam] -- ^ queryParams
-                    -> Mollie (Either ResponseError (List Payments.Payment))
-getCustomerPayments customerId queryParams = get path
-    where
-        path = Text.intercalate "/" [customersPath, customerId, Payments.paymentsPath] <> toText queryParams
+data CustomerAPI route = CustomerAPI
+    { getCustomers          :: route :- "customers" :> Get '[HalJSON] (List Customer)
+    , createCustomer        :: route :- "customers" :> ReqBody '[JSON] NewCustomer :> Post '[HalJSON] Customer
+    , getCustomer           :: route :- "customers" :> Capture "id" CustomerId :> Get '[HalJSON] Customer
+    , getCustomerPayments   :: route :- "customers" :> Capture "id" CustomerId :> "payments" :> Get '[HalJSON] (List Payments.Payment)
+    , createCustomerPayment :: route :- "customers" :> Capture "id" CustomerId :> "payments" :> ReqBody '[JSON] Payments.NewPayment :> Post '[HalJSON] Payments.Payment
+    } deriving Generic

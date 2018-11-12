@@ -1,15 +1,18 @@
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeOperators          #-}
 
 {-|
   [WARNING]: This implementation is currently untested! Due to lack of access to the Mandates API.
 -}
 module Mollie.API.Mandates
-    ( mandatesPath
+    ( MandateAPI
     , newMandate
     , createCustomerMandate
     , getCustomerMandate
@@ -42,13 +45,18 @@ import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import           Data.Default         (Default, def)
 import           Data.Monoid
+import           Data.Proxy           (Proxy (..))
 import qualified Data.Text            as Text
 import qualified Data.Time            as Time
+import           GHC.Generics         (Generic)
 import qualified Mollie.API.Customers as Customers
 import           Mollie.API.Internal
 import           Mollie.API.Methods   (PaymentMethod (..))
 import           Mollie.API.Types
 import qualified Network.HTTP.Types   as HTTP
+import           Servant.API
+import           Servant.API.Generic
+import           Servant.Client
 
 {-|
   Structure to request a new mandate with.
@@ -169,12 +177,6 @@ $(Aeson.deriveFromJSON
 
 makeFieldsNoPrefix ''Mandate
 
-{-|
-  Mandates resource's path, relative to API's versioned customer resource url.
--}
-mandatesPath :: Text.Text
-mandatesPath = "mandates"
-
 newMandate :: PaymentMethod
            -> Text.Text -- ^ consumerName
            -> Text.Text -- ^ consumerAccount
@@ -185,38 +187,8 @@ newMandate _method _consumerName _consumerAccount =
       & consumerName .~ _consumerName
       & consumerAccount .~ _consumerAccount
 
-{-|
-  Handler to create a new mandate for a specific customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
--}
-createCustomerMandate :: CustomerId -- ^ customerId
-                      -> NewMandate -> Mollie (Either ResponseError Mandate)
-createCustomerMandate customerId newMandate =
-    decodeResult <$> send HTTP.methodPost path newMandate
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath]
-
-{-|
-  Handler to get a mandate by its identifier from a specific customer.
-
-  For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
--}
-getCustomerMandate :: CustomerId -- ^ customerId
-                   -> MandateId -- ^ mandateId
-                   -> Mollie (Either ResponseError Mandate)
-getCustomerMandate customerId mandateId = get path
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath, mandateId]
-
-{-|
-  Handler to get a list of mandates for a specific customer. Because the list endpoint is paginated this handler requires an offset and a count. The maximum amount of mandates returned with a single call is 250.
-
-  For more information see: https://www.mollie.com/en/docs/reference/mandates/list.
--}
-getCustomerMandates :: CustomerId -- ^ customerId
-                    -> [QueryParam] -- ^ queryParams
-                    -> Mollie (Either ResponseError (List Mandate))
-getCustomerMandates customerId queryParams = get path
-    where
-        path = Text.intercalate "/" [Customers.customersPath, customerId, mandatesPath] <> toText queryParams
+data MandateAPI route = MandateAPI
+    { getCustomerMandates   :: route :- "customers" :> Capture "customerId" CustomerId :> "mandates" :> Get '[HalJSON] (List Mandate)
+    , createCustomerMandate :: route :- "customers" :> Capture "customerId" CustomerId :> "mandates" :> ReqBody '[JSON] NewMandate :> Post '[HalJSON] Mandate
+    , getCustomerMandate    :: route :- "customers" :> Capture "customerId" CustomerId :> "mandates" :> Capture "id" MandateId :> Get '[HalJSON] Mandate
+    } deriving Generic
