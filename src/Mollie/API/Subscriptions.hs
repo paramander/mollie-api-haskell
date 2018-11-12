@@ -37,20 +37,17 @@ import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
 import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import           Data.Default         (Default, def)
-import           Data.Monoid
 import           Data.Proxy           (Proxy (..))
 import qualified Data.Text            as Text
 import qualified Data.Time            as Time
 import           GHC.Generics         (Generic)
 import qualified Mollie.API.Customers as Customers
-import           Mollie.API.Internal
+import           Mollie.API.Internal  (HalJSON)
 import           Mollie.API.Methods   (PaymentMethod (..))
 import qualified Mollie.API.Payments  as Payments
 import           Mollie.API.Types
-import qualified Network.HTTP.Types   as HTTP
 import           Servant.API
 import           Servant.API.Generic
-import           Servant.Client
 
 {-|
   Structure to request a new subscription with.

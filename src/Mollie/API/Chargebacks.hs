@@ -27,18 +27,15 @@ module Mollie.API.Chargebacks
 import           Control.Lens           (makeFieldsNoPrefix)
 import qualified Data.Aeson             as Aeson
 import qualified Data.Aeson.TH          as Aeson
-import           Data.Monoid
 import           Data.Proxy             (Proxy (..))
 import qualified Data.Text              as Text
 import qualified Data.Time              as Time
 import           GHC.Generics           (Generic)
-import           Mollie.API.Internal
+import           Mollie.API.Internal    (HalJSON)
 import qualified Mollie.API.Payments    as Payments
 import           Mollie.API.Types
 import           Servant.API
 import           Servant.API.Generic
-import           Servant.Client
-import           Servant.Client.Generic
 
 data Chargeback = Chargeback
     { _id               :: ChargebackId

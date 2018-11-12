@@ -28,16 +28,12 @@ import qualified Control.Lens        as Lens
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
 import qualified Data.Aeson.Types    as Aeson
-import           Data.Monoid
-import           Data.Proxy          (Proxy (..))
 import qualified Data.Text           as Text
 import           GHC.Generics        (Generic)
-import           Mollie.API.Internal
+import           Mollie.API.Internal (HalJSON)
 import           Mollie.API.Types
 import           Servant.API
 import           Servant.API.Generic
-import           Servant.Client
-import           Servant.Client.Generic
 
 {-|
   All possible payment methods.

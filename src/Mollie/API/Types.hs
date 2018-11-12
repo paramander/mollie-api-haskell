@@ -18,7 +18,6 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Monoid         ((<>))
 import qualified Data.Text           as Text
 import qualified Data.Time           as Time
-import           GHC.Generics
 import qualified Text.Printf         as Printf
 
 {-|

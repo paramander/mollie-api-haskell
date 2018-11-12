@@ -7,8 +7,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 module Mollie.API
-    ( mollieClient
-    , chargebackClient
+    ( chargebackClient
     , customerClient
     , mandateClient
     , methodClient
