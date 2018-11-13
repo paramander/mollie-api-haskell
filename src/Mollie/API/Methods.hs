@@ -125,7 +125,6 @@ Lens.makeFieldsNoPrefix ''Method
 
 data MethodAPI route = MethodAPI
     { getMethods :: route :- "methods"
-                    :> QueryParam "limit" Int
                     :> Get '[HalJSON] (List Method)
     , getMethod  :: route :- "methods"
                     :> Capture "id" PaymentMethod

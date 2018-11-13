@@ -17,6 +17,7 @@ module Mollie.API.Mandates
     , createCustomerMandate
     , getCustomerMandate
     , getCustomerMandates
+    , getCustomerMandatesPaginated
     , NewMandate (..)
     , MandateStatus (..)
     , MandateDetails (..)
@@ -184,20 +185,24 @@ newMandate _method _consumerName _consumerAccount =
       & consumerAccount .~ _consumerAccount
 
 data MandateAPI route = MandateAPI
-    { getCustomerMandates   :: route :- "customers"
-                               :> Capture "customerId" Customers.CustomerId
-                               :> "mandates"
-                               :> QueryParam "limit" Int
-                               :> QueryParam "from" MandateId
-                               :> Get '[HalJSON] (List Mandate)
-    , createCustomerMandate :: route :- "customers"
-                               :> Capture "customerId" Customers.CustomerId
-                               :> "mandates"
-                               :> ReqBody '[JSON] NewMandate
-                               :> Post '[HalJSON] Mandate
-    , getCustomerMandate    :: route :- "customers"
-                               :> Capture "customerId" CustomerId
-                               :> "mandates"
-                               :> Capture "id" MandateId
-                               :> Get '[HalJSON] Mandate
+    { getCustomerMandatesPaginated :: route :- "customers"
+                                      :> Capture "customerId" Customers.CustomerId
+                                      :> "mandates"
+                                      :> QueryParam "limit" Int
+                                      :> QueryParam "from" MandateId
+                                      :> Get '[HalJSON] (List Mandate)
+    , getCustomerMandates          :: route :- "customers"
+                                      :> Capture "customerId" Customers.CustomerId
+                                      :> "mandates"
+                                      :> Get '[HalJSON] (List Mandate)
+    , createCustomerMandate        :: route :- "customers"
+                                      :> Capture "customerId" Customers.CustomerId
+                                      :> "mandates"
+                                      :> ReqBody '[JSON] NewMandate
+                                      :> Post '[HalJSON] Mandate
+    , getCustomerMandate           :: route :- "customers"
+                                      :> Capture "customerId" CustomerId
+                                      :> "mandates"
+                                      :> Capture "id" MandateId
+                                      :> Get '[HalJSON] Mandate
     } deriving Generic

@@ -13,7 +13,9 @@ module Mollie.API.Chargebacks
     , Chargeback (..)
     , ChargebackId
     , getChargebacks
+    , getChargebacksPaginated
     , getPaymentChargebacks
+    , getPaymentChargebacksPaginated
     , getChargeback
     -- Lens getters
     , Mollie.API.Chargebacks.id
@@ -59,19 +61,25 @@ $(Aeson.deriveFromJSON
 makeFieldsNoPrefix ''Chargeback
 
 data ChargebackAPI route = ChargebackAPI
-    { getChargebacks        :: route :- "chargebacks"
-                               :> QueryParam "limit" Int
-                               :> QueryParam "from" ChargebackId
-                               :> Get '[HalJSON] (List Chargeback)
-    , getPaymentChargebacks :: route :- "payments"
-                               :> Capture "paymentId" Payments.PaymentId
-                               :> "chargebacks"
-                               :> QueryParam "limit" Int
-                               :> QueryParam "from" ChargebackId
-                               :> Get '[HalJSON] (List Chargeback)
-    , getChargeback         :: route :- "payments"
-                               :> Capture "paymentId" Payments.PaymentId
-                               :> "chargebacks"
-                               :> Capture "id" ChargebackId
-                               :> Get '[HalJSON] Chargeback
+    { getChargebacksPaginated        :: route :- "chargebacks"
+                                        :> QueryParam "limit" Int
+                                        :> QueryParam "from" ChargebackId
+                                        :> Get '[HalJSON] (List Chargeback)
+    , getChargebacks                 :: route :- "chargebacks"
+                                        :> Get '[HalJSON] (List Chargeback)
+    , getPaymentChargebacksPaginated :: route :- "payments"
+                                        :> Capture "paymentId" Payments.PaymentId
+                                        :> "chargebacks"
+                                        :> QueryParam "limit" Int
+                                        :> QueryParam "from" ChargebackId
+                                        :> Get '[HalJSON] (List Chargeback)
+    , getPaymentChargebacks          :: route :- "payments"
+                                        :> Capture "paymentId" Payments.PaymentId
+                                        :> "chargebacks"
+                                        :> Get '[HalJSON] (List Chargeback)
+    , getChargeback                  :: route :- "payments"
+                                        :> Capture "paymentId" Payments.PaymentId
+                                        :> "chargebacks"
+                                        :> Capture "id" ChargebackId
+                                        :> Get '[HalJSON] Chargeback
     } deriving Generic

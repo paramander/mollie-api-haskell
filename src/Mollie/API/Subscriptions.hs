@@ -14,7 +14,10 @@ module Mollie.API.Subscriptions
     , createCustomerSubscription
     , getCustomerSubscription
     , getCustomerSubscriptions
+    , getCustomerSubscriptionsPaginated
     , cancelCustomerSubscription
+    , getSubscriptionPayments
+    , getSubscriptionPaymentsPaginated
     , NewSubscription (..)
     , SubscriptionStatus (..)
     , Subscription (..)
@@ -155,35 +158,45 @@ $(Aeson.deriveFromJSON
 makeFieldsNoPrefix ''Subscription
 
 data SubscriptionAPI route = SubscriptionAPI
-    { getCustomerSubscriptions   :: route :- "customers"
-                                    :> Capture "customerId" Customers.CustomerId
-                                    :> "subscriptions"
-                                    :> QueryParam "limit" Int
-                                    :> QueryParam "from" SubscriptionId
-                                    :> Get '[HalJSON] (List Subscription)
-    , createCustomerSubscription :: route :- "customers"
-                                    :> Capture "customerId" Customers.CustomerId
-                                    :> "subscriptions"
-                                    :> ReqBody '[JSON] NewSubscription
-                                    :> Post '[HalJSON] Subscription
-    , getCustomerSubscription    :: route :- "customers"
-                                    :> Capture "customerId" Customers.CustomerId
-                                    :> "subscriptions"
-                                    :> Capture "id" SubscriptionId
-                                    :> Get '[HalJSON] Subscription
-    , cancelCustomerSubscription :: route :- "customers"
-                                    :> Capture "customerId" Customers.CustomerId
-                                    :> "subscriptions"
-                                    :> Capture "id" SubscriptionId
-                                    :> DeleteNoContent '[HalJSON] NoContent
-    , getSubscriptionPayments    :: route :- "customers"
-                                    :> Capture "customerId" Customers.CustomerId
-                                    :> "subscriptions"
-                                    :> Capture "id" SubscriptionId
-                                    :> "payments"
-                                    :> QueryParam "limit" Int
-                                    :> QueryParam "from" Payments.PaymentId
-                                    :> Get '[HalJSON] (List Payments.Payment)
+    { getCustomerSubscriptionsPaginated :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> QueryParam "limit" Int
+                                           :> QueryParam "from" SubscriptionId
+                                           :> Get '[HalJSON] (List Subscription)
+    , getCustomerSubscriptions          :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> Get '[HalJSON] (List Subscription)
+    , createCustomerSubscription        :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> ReqBody '[JSON] NewSubscription
+                                           :> Post '[HalJSON] Subscription
+    , getCustomerSubscription           :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> Capture "id" SubscriptionId
+                                           :> Get '[HalJSON] Subscription
+    , cancelCustomerSubscription        :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> Capture "id" SubscriptionId
+                                           :> DeleteNoContent '[HalJSON] NoContent
+    , getSubscriptionPaymentsPaginated  :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> Capture "id" SubscriptionId
+                                           :> "payments"
+                                           :> QueryParam "limit" Int
+                                           :> QueryParam "from" Payments.PaymentId
+                                           :> Get '[HalJSON] (List Payments.Payment)
+    , getSubscriptionPayments           :: route :- "customers"
+                                           :> Capture "customerId" Customers.CustomerId
+                                           :> "subscriptions"
+                                           :> Capture "id" SubscriptionId
+                                           :> "payments"
+                                           :> Get '[HalJSON] (List Payments.Payment)
     } deriving Generic
 
 {-|

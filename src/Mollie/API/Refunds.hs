@@ -11,11 +11,13 @@
 module Mollie.API.Refunds
     ( RefundAPI
     , getRefunds
+    , getRefundsPaginated
     , newRefund
     , createPaymentRefund
     , getPaymentRefund
     , cancelPaymentRefund
     , getPaymentRefunds
+    , getPaymentRefundsPaginated
     , RefundStatus (..)
     , Refund (..)
     -- Lens getters
@@ -129,31 +131,39 @@ $(Aeson.deriveFromJSON
 makeFieldsNoPrefix ''Refund
 
 data RefundAPI route = RefundAPI
-    { getRefunds          :: route :- "refunds"
-                             :> QueryParam "limit" Int
-                             :> QueryParam "from" RefundId
-                             :> Get '[HalJSON] (List Refund)
-    , getPaymentRefunds   :: route :- "payments"
-                             :> Capture "paymentId" Payments.PaymentId
-                             :> "refunds"
-                             :> QueryParam "limit" Int
-                             :> QueryParam "from" RefundId
-                             :> Get '[HalJSON] (List Refund)
-    , createPaymentRefund :: route :- "payments"
-                             :> Capture "paymentId" Payments.PaymentId
-                             :> "refunds"
-                             :> ReqBody '[JSON] NewRefund
-                             :> Post '[HalJSON] Refund
-    , getPaymentRefund    :: route :- "payments"
-                             :> Capture "paymentId" Payments.PaymentId
-                             :> "refunds"
-                             :> Capture "id" RefundId
-                             :> Get '[HalJSON] Refund
-    , cancelPaymentRefund :: route :- "payments"
-                             :> Capture "paymentId" Payments.PaymentId
-                             :> "refunds"
-                             :> Capture "id" RefundId
-                             :> DeleteNoContent '[HalJSON] NoContent
+    { getRefundsPaginated        :: route :- "refunds"
+                                    :> QueryParam "limit" Int
+                                    :> QueryParam "from" RefundId
+                                    :> Get '[HalJSON] (List Refund)
+    , getRefunds                 :: route :- "refunds"
+                                    :> Get '[HalJSON] (List Refund)
+    , getPaymentRefundsPaginated :: route :- "payments"
+                                    :> Capture "paymentId" Payments.PaymentId
+                                    :> "refunds"
+                                    :> QueryParam "limit" Int
+                                    :> QueryParam "from" RefundId
+                                    :> Get '[HalJSON] (List Refund)
+    , getPaymentRefunds          :: route :- "payments"
+                                    :> Capture "paymentId" Payments.PaymentId
+                                    :> "refunds"
+                                    :> QueryParam "limit" Int
+                                    :> QueryParam "from" RefundId
+                                    :> Get '[HalJSON] (List Refund)
+    , createPaymentRefund        :: route :- "payments"
+                                    :> Capture "paymentId" Payments.PaymentId
+                                    :> "refunds"
+                                    :> ReqBody '[JSON] NewRefund
+                                    :> Post '[HalJSON] Refund
+    , getPaymentRefund           :: route :- "payments"
+                                    :> Capture "paymentId" Payments.PaymentId
+                                    :> "refunds"
+                                    :> Capture "id" RefundId
+                                    :> Get '[HalJSON] Refund
+    , cancelPaymentRefund        :: route :- "payments"
+                                    :> Capture "paymentId" Payments.PaymentId
+                                    :> "refunds"
+                                    :> Capture "id" RefundId
+                                    :> DeleteNoContent '[HalJSON] NoContent
     } deriving Generic
 
 {-|
