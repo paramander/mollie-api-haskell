@@ -27,8 +27,6 @@ module Mollie.API.Chargebacks
 import           Control.Lens           (makeFieldsNoPrefix)
 import qualified Data.Aeson             as Aeson
 import qualified Data.Aeson.TH          as Aeson
-import           Data.Proxy             (Proxy (..))
-import qualified Data.Text              as Text
 import qualified Data.Time              as Time
 import           GHC.Generics           (Generic)
 import           Mollie.API.Internal    (HalJSON)
@@ -61,7 +59,19 @@ $(Aeson.deriveFromJSON
 makeFieldsNoPrefix ''Chargeback
 
 data ChargebackAPI route = ChargebackAPI
-    { getChargebacks        :: route :- "chargebacks" :> Get '[HalJSON] (List Chargeback)
-    , getPaymentChargebacks :: route :- "payments" :> Capture "paymentId" Payments.PaymentId :> "chargebacks" :> Get '[HalJSON] (List Chargeback)
-    , getChargeback         :: route :- "payments" :> Capture "paymentId" Payments.PaymentId :> "chargebacks" :> Capture "id" ChargebackId :> Get '[HalJSON] Chargeback
+    { getChargebacks        :: route :- "chargebacks"
+                               :> QueryParam "limit" Int
+                               :> QueryParam "from" ChargebackId
+                               :> Get '[HalJSON] (List Chargeback)
+    , getPaymentChargebacks :: route :- "payments"
+                               :> Capture "paymentId" Payments.PaymentId
+                               :> "chargebacks"
+                               :> QueryParam "limit" Int
+                               :> QueryParam "from" ChargebackId
+                               :> Get '[HalJSON] (List Chargeback)
+    , getChargeback         :: route :- "payments"
+                               :> Capture "paymentId" Payments.PaymentId
+                               :> "chargebacks"
+                               :> Capture "id" ChargebackId
+                               :> Get '[HalJSON] Chargeback
     } deriving Generic

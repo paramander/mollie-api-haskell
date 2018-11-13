@@ -6,6 +6,7 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+
 module Mollie.API
     ( chargebackClient
     , customerClient

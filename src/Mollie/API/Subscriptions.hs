@@ -37,7 +37,7 @@ import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
 import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import           Data.Default         (Default, def)
-import           Data.Proxy           (Proxy (..))
+import           Data.Proxy           ()
 import qualified Data.Text            as Text
 import qualified Data.Time            as Time
 import           GHC.Generics         (Generic)
@@ -155,11 +155,35 @@ $(Aeson.deriveFromJSON
 makeFieldsNoPrefix ''Subscription
 
 data SubscriptionAPI route = SubscriptionAPI
-    { getCustomerSubscriptions   :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Get '[HalJSON] (List Subscription)
-    , createCustomerSubscription :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> ReqBody '[JSON] NewSubscription :> Post '[HalJSON] Subscription
-    , getCustomerSubscription    :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Capture "id" SubscriptionId :> Get '[HalJSON] Subscription
-    , cancelCustomerSubscription :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Capture "id" SubscriptionId :> DeleteNoContent '[HalJSON] NoContent
-    , getSubscriptionPayments    :: route :- "customers" :> Capture "customerId" CustomerId :> "subscriptions" :> Capture "id" SubscriptionId :> "payments" :> Get '[HalJSON] (List Payments.Payment)
+    { getCustomerSubscriptions   :: route :- "customers"
+                                    :> Capture "customerId" Customers.CustomerId
+                                    :> "subscriptions"
+                                    :> QueryParam "limit" Int
+                                    :> QueryParam "from" SubscriptionId
+                                    :> Get '[HalJSON] (List Subscription)
+    , createCustomerSubscription :: route :- "customers"
+                                    :> Capture "customerId" Customers.CustomerId
+                                    :> "subscriptions"
+                                    :> ReqBody '[JSON] NewSubscription
+                                    :> Post '[HalJSON] Subscription
+    , getCustomerSubscription    :: route :- "customers"
+                                    :> Capture "customerId" Customers.CustomerId
+                                    :> "subscriptions"
+                                    :> Capture "id" SubscriptionId
+                                    :> Get '[HalJSON] Subscription
+    , cancelCustomerSubscription :: route :- "customers"
+                                    :> Capture "customerId" Customers.CustomerId
+                                    :> "subscriptions"
+                                    :> Capture "id" SubscriptionId
+                                    :> DeleteNoContent '[HalJSON] NoContent
+    , getSubscriptionPayments    :: route :- "customers"
+                                    :> Capture "customerId" Customers.CustomerId
+                                    :> "subscriptions"
+                                    :> Capture "id" SubscriptionId
+                                    :> "payments"
+                                    :> QueryParam "limit" Int
+                                    :> QueryParam "from" Payments.PaymentId
+                                    :> Get '[HalJSON] (List Payments.Payment)
     } deriving Generic
 
 {-|

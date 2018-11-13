@@ -133,9 +133,25 @@ newCustomer _name _email =
       & email .~ Just _email
 
 data CustomerAPI route = CustomerAPI
-    { getCustomers          :: route :- "customers" :> Get '[HalJSON] (List Customer)
-    , createCustomer        :: route :- "customers" :> ReqBody '[JSON] NewCustomer :> Post '[HalJSON] Customer
-    , getCustomer           :: route :- "customers" :> Capture "id" CustomerId :> Get '[HalJSON] Customer
-    , getCustomerPayments   :: route :- "customers" :> Capture "id" CustomerId :> "payments" :> Get '[HalJSON] (List Payments.Payment)
-    , createCustomerPayment :: route :- "customers" :> Capture "id" CustomerId :> "payments" :> ReqBody '[JSON] Payments.NewPayment :> Post '[HalJSON] Payments.Payment
+    { getCustomers          :: route :- "customers"
+                               :> QueryParam "limit" Int
+                               :> QueryParam "from" CustomerId
+                               :> Get '[HalJSON] (List Customer)
+    , createCustomer        :: route :- "customers"
+                               :> ReqBody '[JSON] NewCustomer
+                               :> Post '[HalJSON] Customer
+    , getCustomer           :: route :- "customers"
+                               :> Capture "id" CustomerId
+                               :> Get '[HalJSON] Customer
+    , getCustomerPayments   :: route :- "customers"
+                               :> Capture "id" CustomerId
+                               :> "payments"
+                               :> QueryParam "limit" Int
+                               :> QueryParam "from" Payments.PaymentId
+                               :> Get '[HalJSON] (List Payments.Payment)
+    , createCustomerPayment :: route :- "customers"
+                               :> Capture "id" CustomerId
+                               :> "payments"
+                               :> ReqBody '[JSON] Payments.NewPayment
+                               :> Post '[HalJSON] Payments.Payment
     } deriving Generic

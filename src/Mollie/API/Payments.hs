@@ -356,7 +356,14 @@ newRecurringPayment _amount _description =
       & customerReference .~ Nothing
 
 data PaymentAPI route = PaymentAPI
-    { getPayments   :: route :- "payments" :> Get '[HalJSON] (List Payment)
-    , createPayment :: route :- "payments" :> ReqBody '[JSON] NewPayment :> Post '[HalJSON] Payment
-    , getPayment    :: route :- "payments" :> Capture "id" PaymentId :> Get '[HalJSON] Payment
+    { getPayments   :: route :- "payments"
+                       :> QueryParam "limit" Int
+                       :> QueryParam "from" PaymentId
+                       :> Get '[HalJSON] (List Payment)
+    , createPayment :: route :- "payments"
+                       :> ReqBody '[JSON] NewPayment
+                       :> Post '[HalJSON] Payment
+    , getPayment    :: route :- "payments"
+                       :> Capture "id" PaymentId
+                       :> Get '[HalJSON] Payment
     } deriving Generic

@@ -124,6 +124,10 @@ $(Aeson.deriveFromJSON
 Lens.makeFieldsNoPrefix ''Method
 
 data MethodAPI route = MethodAPI
-    { getMethods :: route :- "methods" :> Get '[HalJSON] (List Method)
-    , getMethod  :: route :- "methods" :> Capture "id" PaymentMethod :> Get '[HalJSON] Method
+    { getMethods :: route :- "methods"
+                    :> QueryParam "limit" Int
+                    :> Get '[HalJSON] (List Method)
+    , getMethod  :: route :- "methods"
+                    :> Capture "id" PaymentMethod
+                    :> Get '[HalJSON] Method
     } deriving Generic

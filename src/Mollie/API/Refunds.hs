@@ -38,7 +38,6 @@ import           GHC.Generics        (Generic)
 import           Mollie.API.Internal (HalJSON)
 import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
-import qualified Network.HTTP.Types  as HTTP
 import           Servant.API
 import           Servant.API.Generic
 
@@ -130,11 +129,31 @@ $(Aeson.deriveFromJSON
 makeFieldsNoPrefix ''Refund
 
 data RefundAPI route = RefundAPI
-    { getRefunds          :: route :- "refunds" :> Get '[HalJSON] (List Refund)
-    , getPaymentRefunds   :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> Get '[HalJSON] (List Refund)
-    , createPaymentRefund :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> ReqBody '[JSON] NewRefund :> Post '[HalJSON] Refund
-    , getPaymentRefund    :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> Capture "id" RefundId :> Get '[HalJSON] Refund
-    , cancelPaymentRefund :: route :- "payments" :> Capture "paymentId" PaymentId :> "refunds" :> Capture "id" RefundId :> DeleteNoContent '[HalJSON] NoContent
+    { getRefunds          :: route :- "refunds"
+                             :> QueryParam "limit" Int
+                             :> QueryParam "from" RefundId
+                             :> Get '[HalJSON] (List Refund)
+    , getPaymentRefunds   :: route :- "payments"
+                             :> Capture "paymentId" Payments.PaymentId
+                             :> "refunds"
+                             :> QueryParam "limit" Int
+                             :> QueryParam "from" RefundId
+                             :> Get '[HalJSON] (List Refund)
+    , createPaymentRefund :: route :- "payments"
+                             :> Capture "paymentId" Payments.PaymentId
+                             :> "refunds"
+                             :> ReqBody '[JSON] NewRefund
+                             :> Post '[HalJSON] Refund
+    , getPaymentRefund    :: route :- "payments"
+                             :> Capture "paymentId" Payments.PaymentId
+                             :> "refunds"
+                             :> Capture "id" RefundId
+                             :> Get '[HalJSON] Refund
+    , cancelPaymentRefund :: route :- "payments"
+                             :> Capture "paymentId" Payments.PaymentId
+                             :> "refunds"
+                             :> Capture "id" RefundId
+                             :> DeleteNoContent '[HalJSON] NoContent
     } deriving Generic
 
 {-|

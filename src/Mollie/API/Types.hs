@@ -8,16 +8,14 @@
 module Mollie.API.Types where
 
 import qualified Control.Lens        as Lens
-import qualified Control.Lens.TH     as Lens
+import           Control.Lens.TH     ()
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
 import qualified Data.Aeson.Types    as Aeson
 import qualified Data.Currency       as Currency
 import           Data.Default        (Default, def)
 import qualified Data.HashMap.Strict as HashMap
-import           Data.Monoid         ((<>))
 import qualified Data.Text           as Text
-import qualified Data.Time           as Time
 import qualified Text.Printf         as Printf
 
 {-|
@@ -232,16 +230,3 @@ data ResponseError
     | ServerError Int
     | UnexpectedResponse Text.Text
     deriving (Show)
-
-{-|
-  For usage in API calls.
--}
-data QueryParam = QueryParam Text.Text Text.Text
-
-queryParam :: Text.Text -> Text.Text -> QueryParam
-queryParam = QueryParam
-
-instance ToText [QueryParam] where
-    toText [] = mempty
-    toText params =
-        mappend "?" $ Text.intercalate "&" $ map (\(QueryParam paramName paramValue) -> paramName <> "=" <> paramValue) params
