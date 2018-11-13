@@ -313,9 +313,9 @@ makeFieldsNoPrefix ''Payment
 {-|
   Helper to create a minimal new payment for normal use.
 -}
-newPayment :: Double -- ^ amount
-           -> Text.Text -- ^ description
-           -> Text.Text -- ^ redirectUrl
+newPayment :: Double -- ^ _amount
+           -> Text.Text -- ^ _description
+           -> Text.Text -- ^ _redirectUrl
            -> NewPayment
 newPayment _amount _description _redirectUrl =
     (newRecurringPayment _amount _description)
@@ -332,8 +332,8 @@ newPayment _amount _description _redirectUrl =
   For a first recurring payment use `newPayment` and set the
   recurring type to `First`, because it needs a return url.
 -}
-newRecurringPayment :: Double -- ^ amount
-                    -> Text.Text -- ^ description
+newRecurringPayment :: Double -- ^ _amount
+                    -> Text.Text -- ^ _description
                     -> NewPayment
 newRecurringPayment _amount _description =
     def
@@ -361,12 +361,16 @@ data PaymentAPI route = PaymentAPI
                               :> QueryParam "limit" Int
                               :> QueryParam "from" PaymentId
                               :> Get '[HalJSON] (List Payment)
+    -- ^Handler to get a paginated list of payments. Offset the results by passing the last payment ID in the `from` query param. The payment with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/payments-api/list-payments
     , getPayments          :: route :- "payments"
                               :> Get '[HalJSON] (List Payment)
+    -- ^Handler to get a paginated list of payments. Applies default pagination for newest 250 customers. See https://docs.mollie.com/reference/v2/payments-api/list-payments
     , createPayment        :: route :- "payments"
                               :> ReqBody '[JSON] NewPayment
                               :> Post '[HalJSON] Payment
+    -- ^Handler to create a new payment. See https://docs.mollie.com/reference/v2/payments-api/create-payment
     , getPayment           :: route :- "payments"
                               :> Capture "id" PaymentId
                               :> Get '[HalJSON] Payment
+    -- ^Handler to get a payment by its identifier. See https://docs.mollie.com/reference/v2/payments-api/create-payment
     } deriving Generic

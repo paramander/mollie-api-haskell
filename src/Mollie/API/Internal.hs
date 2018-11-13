@@ -23,6 +23,9 @@ import           Servant.API
 import           Servant.API.ContentTypes  (eitherDecodeLenient)
 import           Servant.Client
 
+{-|
+  Mollie returns all API calls with "Content-Type: application/hal+json"
+-}
 data HalJSON deriving Typeable
 
 instance Accept HalJSON where
@@ -48,19 +51,25 @@ handleError failure =
         ConnectionError explanation ->
             UnexpectedResponse explanation
 
-servantResponseToError :: Int -> LazyByteString.ByteString -> ResponseError
-servantResponseToError status body
-    | elem status [400, 401, 403, 404, 405, 415, 422, 429] =
-      case Aeson.eitherDecode body of
-          Right err          -> ClientError status err
+servantResponseToError :: Int -- ^ _status
+                       -> LazyByteString.ByteString -- ^ body
+                       -> ResponseError
+servantResponseToError _status _body
+    | elem _status [400, 401, 403, 404, 405, 415, 422, 429] =
+      case Aeson.eitherDecode _body of
+          Right err          -> ClientError _status err
           Left decodeFailure -> UnexpectedResponse (Text.pack decodeFailure)
-    | elem status [500, 502, 503, 504] =
-          ServerError status
+    | elem _status [500, 502, 503, 504] =
+          ServerError _status
     | otherwise = UnexpectedResponse (Text.pack "Unhandled status code")
 
-createEnv :: String -> IO ClientEnv
-createEnv mollieKey = do
-    let _settings = HTTP.tlsManagerSettings { HTTP.managerModifyRequest = applyMollieHeaders mollieKey }
+{-|
+  Setup the environment for executing API calls
+-}
+createEnv :: String -- ^ mollieApiKey
+          -> IO ClientEnv
+createEnv mollieApiKey = do
+    let _settings = HTTP.tlsManagerSettings { HTTP.managerModifyRequest = applyMollieHeaders mollieApiKey }
     _manager <- HTTP.newManager _settings
     _baseUrl <- parseBaseUrl "https://api.mollie.com"
     return $ mkClientEnv _manager _baseUrl

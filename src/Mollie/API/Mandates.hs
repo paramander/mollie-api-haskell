@@ -174,9 +174,9 @@ $(Aeson.deriveFromJSON
 
 makeFieldsNoPrefix ''Mandate
 
-newMandate :: PaymentMethod
-           -> Text.Text -- ^ consumerName
-           -> Text.Text -- ^ consumerAccount
+newMandate :: PaymentMethod -- ^ _method
+           -> Text.Text -- ^ _consumerName
+           -> Text.Text -- ^ _consumerAccount
            -> NewMandate
 newMandate _method _consumerName _consumerAccount =
     def
@@ -191,18 +191,22 @@ data MandateAPI route = MandateAPI
                                       :> QueryParam "limit" Int
                                       :> QueryParam "from" MandateId
                                       :> Get '[HalJSON] (List Mandate)
+    -- ^Handler to get a paginated list of mandates for a specific customer. Offset the results by passing the last mandate ID in the `from` query param. The mandate with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/mandates-api/list-mandates
     , getCustomerMandates          :: route :- "customers"
                                       :> Capture "customerId" Customers.CustomerId
                                       :> "mandates"
                                       :> Get '[HalJSON] (List Mandate)
+    -- ^Handler to get a paginated list of mandates for a specific customer. Applies default pagination for newest 250 customers. See https://docs.mollie.com/reference/v2/mandates-api/list-mandates
     , createCustomerMandate        :: route :- "customers"
                                       :> Capture "customerId" Customers.CustomerId
                                       :> "mandates"
                                       :> ReqBody '[JSON] NewMandate
                                       :> Post '[HalJSON] Mandate
+    -- ^Handler to create a new mandate for a specific customer. See https://docs.mollie.com/reference/v2/mandates-api/create-mandate
     , getCustomerMandate           :: route :- "customers"
                                       :> Capture "customerId" CustomerId
                                       :> "mandates"
                                       :> Capture "id" MandateId
                                       :> Get '[HalJSON] Mandate
+    -- ^Handler to get a mandate by its identifier for a specific customer. See https://docs.mollie.com/reference/v2/mandates-api/get-mandate
     } deriving Generic

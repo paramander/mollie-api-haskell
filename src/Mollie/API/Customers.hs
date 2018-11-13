@@ -126,8 +126,8 @@ makeFieldsNoPrefix ''Customer
 {-|
   Helper to create a minimal new customer.
 -}
-newCustomer :: Text.Text -- ^ name
-            -> Text.Text -- ^ email
+newCustomer :: Text.Text -- ^ _name
+            -> Text.Text -- ^ _email
             -> NewCustomer
 newCustomer _name _email =
     def
@@ -139,27 +139,34 @@ data CustomerAPI route = CustomerAPI
                                       :> QueryParam "limit" Int
                                       :> QueryParam "from" CustomerId
                                       :> Get '[HalJSON] (List Customer)
+    -- ^Handler to get a paginated list of customers. Offset the results by passing the last customer ID in the `from` query param. The customer with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/customers-api/list-customers
     , getCustomers                 :: route :- "customers"
                                       :> Get '[HalJSON] (List Customer)
+    -- ^Handler to get a paginated list of customers. Applies default pagination for newest 250 customers. See https://docs.mollie.com/reference/v2/customers-api/list-customers
     , createCustomer               :: route :- "customers"
                                       :> ReqBody '[JSON] NewCustomer
                                       :> Post '[HalJSON] Customer
+    -- ^Handler to create a new customer. See https://docs.mollie.com/reference/v2/customers-api/create-customer
     , getCustomer                  :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> Get '[HalJSON] Customer
+    -- ^Handler to get a customer by its identifier. See https://docs.mollie.com/reference/v2/customers-api/get-customer
     , getCustomerPaymentsPaginated :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> "payments"
                                       :> QueryParam "limit" Int
                                       :> QueryParam "from" Payments.PaymentId
                                       :> Get '[HalJSON] (List Payments.Payment)
+    -- ^Handler to get a paginated list of payments for a specific customer. Offset the results by passing the last payment ID in the `from` query param. The payment with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/customers-api/list-customers-payments
     , getCustomerPayments          :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> "payments"
                                       :> Get '[HalJSON] (List Payments.Payment)
+    -- ^Handler to get a paginated list of payments for a specific customer. Applies default pagination for newest 250 payments. See https://docs.mollie.com/reference/v2/customers-api/list-customer-payments
     , createCustomerPayment        :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> "payments"
                                       :> ReqBody '[JSON] Payments.NewPayment
                                       :> Post '[HalJSON] Payments.Payment
+    -- ^Handler to create a new payment for a specific customer. See https://docs.mollie.com/reference/v2/customers-api/create-customer-payment
     } deriving Generic

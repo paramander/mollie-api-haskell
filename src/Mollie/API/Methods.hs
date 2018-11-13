@@ -126,7 +126,9 @@ Lens.makeFieldsNoPrefix ''Method
 data MethodAPI route = MethodAPI
     { getMethods :: route :- "methods"
                     :> Get '[HalJSON] (List Method)
+    -- ^Handler to get a list of payment methods. See https://docs.mollie.com/reference/v2/methods-api/list-methods
     , getMethod  :: route :- "methods"
                     :> Capture "id" PaymentMethod
                     :> Get '[HalJSON] Method
+    -- ^Handler to get a payment method by its identifier. See https://docs.mollie.com/reference/v2/methods-api/get-method
     } deriving Generic
