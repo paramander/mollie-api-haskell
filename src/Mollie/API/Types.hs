@@ -1,4 +1,3 @@
-{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -12,11 +11,14 @@ import           Control.Lens.TH     ()
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
 import qualified Data.Aeson.Types    as Aeson
+import           Data.Char           (toLower)
 import qualified Data.Currency       as Currency
 import           Data.Default        (Default, def)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Text           as Text
+import           Mollie.API.Helpers  (lowerFirst)
 import qualified Text.Printf         as Printf
+
 
 {-|
   Helper class for when data is required to be transformed
@@ -38,16 +40,16 @@ type MandateId = Text.Text
   For more information see: https://docs.mollie.com/guides/common-data-types#amount-object
 -}
 data Amount = Amount
-    { _currency :: Currency.Alpha
+    { _amountCurrency :: Currency.Alpha
     -- ^An ISO 4217 currency code. The currencies supported depend on the payment methods that are enabled on your account.
-    , _value    :: Text.Text
+    , _amountValue    :: Text.Text
     -- ^A string containing the exact amount you want to charge in the given currency. Make sure to send the right amount of decimals
     } deriving (Show, Eq)
 
 instance Default Amount where
     def = Amount
-        { _currency = Currency.EUR
-        , _value = mempty
+        { _amountCurrency = Currency.EUR
+        , _amountValue = mempty
         }
 
 {-|
@@ -55,71 +57,71 @@ instance Default Amount where
 -}
 defaultAmount :: Double -> Amount
 defaultAmount x =
-    def { _value = Text.pack $ Printf.printf "%.2f" x }
+    def { _amountValue = Text.pack $ Printf.printf "%.2f" x }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 7
         }
     ''Amount)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 7
         }
     ''Amount)
 
-Lens.makeFieldsNoPrefix ''Amount
+Lens.makeFields ''Amount
 
 data Address = Address
-    { _streetAndNumber  :: Text.Text
+    { _addressStreetAndNumber  :: Text.Text
     -- ^The card holder’s street and street number
-    , _streetAdditional :: Maybe Text.Text
-    , _postalCode       :: Text.Text
+    , _addressStreetAdditional :: Maybe Text.Text
+    , _addressPostalCode       :: Text.Text
     -- ^The card holder’s postal code
-    , _city             :: Text.Text
+    , _addressCity             :: Text.Text
     -- ^The card holder’s city
-    , _region           :: Maybe Text.Text
+    , _addressRegion           :: Maybe Text.Text
     -- ^The card holder’s region. Sometimes required for Paypal payments.
-    , _country          :: Text.Text
+    , _addressCountry          :: Text.Text
     -- ^The card holder’s country in ISO 3166-1 alpha-2 format
     } deriving (Show)
 
 instance Default Address where
     def = Address
-        { _streetAndNumber = mempty
-        , _streetAdditional = mempty
-        , _postalCode = mempty
-        , _city = mempty
-        , _region = mempty
-        , _country = mempty
+        { _addressStreetAndNumber = mempty
+        , _addressStreetAdditional = mempty
+        , _addressPostalCode = mempty
+        , _addressCity = mempty
+        , _addressRegion = mempty
+        , _addressCountry = mempty
         }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 8
         }
     ''Address)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 8
         }
     ''Address)
 
-Lens.makeFieldsNoPrefix ''Address
+Lens.makeFields ''Address
 
 data Link = Link
-    { _href :: Text.Text
+    { _linkHref :: Text.Text
     } deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 5
         }
     ''Link)
 
-Lens.makeFieldsNoPrefix ''Link
+Lens.makeFields ''Link
 
 {-|
   All available API modes.
@@ -142,24 +144,24 @@ $(Aeson.deriveJSON
   Important links associated with List responses.
 -}
 data ListLinks = ListLinks
-    { _self          :: Link
+    { _listLinksSelf          :: Link
     -- ^The URL to the current set of objects..
-    , _next          :: Maybe Link
+    , _listLinksNext          :: Maybe Link
     -- ^The previous set of objects, if available.
-    , _previous      :: Maybe Link
+    , _listLinksPrevious      :: Maybe Link
     -- ^The next set of objects, if available.
-    , _documentation :: Maybe Link
+    , _listLinksDocumentation :: Maybe Link
     -- ^URL to the documentation of the current endpoint.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 10
         }
     ''ListLinks)
 
-Lens.makeFieldsNoPrefix ''ListLinks
+Lens.makeFields ''ListLinks
 
 {-|
   List response for any resource with metadata.
@@ -167,11 +169,11 @@ Lens.makeFieldsNoPrefix ''ListLinks
   For more information see: https://www.mollie.com/nl/docs/reference/payments/list.
 -}
 data List a = List
-    { _count    :: Int
+    { _listCount    :: Int
     -- ^The number of objects found in `_embedded`, which is either the requested number (with a maximum of 250) or the default number.
-    , _embedded :: [a]
+    , _listEmbedded :: [a]
     -- ^The actual data you’re looking for.
-    , _links    :: ListLinks
+    , _listLinks    :: ListLinks
     -- ^Links to help navigate through the lists of objects.
     }
     deriving (Show)
@@ -185,7 +187,7 @@ instance Aeson.FromJSON a => Aeson.FromJSON (List a) where
               elems = concat . HashMap.elems
     parseJSON invalid = Aeson.typeMismatch "Not a correct embed for a list" invalid
 
-Lens.makeFieldsNoPrefix ''List
+Lens.makeFields ''List
 
 {-|
   Error data representations.
@@ -193,33 +195,33 @@ Lens.makeFieldsNoPrefix ''List
   For more information see: https://www.mollie.com/en/docs/errors.
 -}
 data ErrorLinks = ErrorLinks
-    { _documentation :: Link
+    { _errorLinksDocumentation :: Link
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 11
         }
     ''ErrorLinks)
 
-Lens.makeFieldsNoPrefix ''ErrorLinks
+Lens.makeFields ''ErrorLinks
 
 data Error = Error
-    { _title  :: Text.Text
-    , _detail :: Text.Text
-    , _field  :: Maybe Text.Text
-    , _links  :: Maybe ErrorLinks
+    { _errorTitle  :: Text.Text
+    , _errorDetail :: Text.Text
+    , _errorField  :: Maybe Text.Text
+    , _errorLinks  :: Maybe ErrorLinks
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 6
         }
     ''Error)
 
-Lens.makeFieldsNoPrefix ''Error
+Lens.makeFields ''Error
 
 
 {-|

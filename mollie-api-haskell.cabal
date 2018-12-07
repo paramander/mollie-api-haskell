@@ -26,6 +26,7 @@ library
                      , Mollie.API.Subscriptions
                      , Mollie.API.Chargebacks
   other-modules:       Mollie.API.Internal
+                     , Mollie.API.Helpers
                      , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
                      , aeson >= 1.0 && < 1.4

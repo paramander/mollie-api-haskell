@@ -24,39 +24,40 @@ module Mollie.API.Chargebacks
     , paymentId
     ) where
 
-import           Control.Lens           (makeFieldsNoPrefix)
-import qualified Data.Aeson             as Aeson
-import qualified Data.Aeson.TH          as Aeson
-import qualified Data.Time              as Time
-import           GHC.Generics           (Generic)
-import           Mollie.API.Internal    (HalJSON)
-import qualified Mollie.API.Payments    as Payments
+import           Control.Lens        (makeFields)
+import qualified Data.Aeson          as Aeson
+import qualified Data.Aeson.TH       as Aeson
+import qualified Data.Time           as Time
+import           GHC.Generics        (Generic)
+import           Mollie.API.Helpers
+import           Mollie.API.Internal (HalJSON)
+import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 import           Servant.API
 import           Servant.API.Generic
 
 data Chargeback = Chargeback
-    { _id               :: ChargebackId
+    { _chargebackId               :: ChargebackId
     -- ^Mollies reference to the chargeback.
-    , _amount           :: Amount
+    , _chargebackAmount           :: Amount
     -- ^The amount charged back by the consumer.
-    , _settlementAmount :: Maybe Amount
+    , _chargebackSettlementAmount :: Maybe Amount
     -- ^The amount that will be deducted from your account
-    , _createdAt        :: Time.UTCTime
+    , _chargebackCreatedAt        :: Time.UTCTime
     -- ^The date and time the chargeback was issued.
-    , _reversedAt       :: Maybe Time.UTCTime
+    , _chargebackReversedAt       :: Maybe Time.UTCTime
     -- ^The date and time the chargeback was reversed.
-    , _paymentId        :: PaymentId
+    , _chargebackPaymentId        :: PaymentId
     -- ^The unique identifier of the payment this chargeback was issued for.
     }
 
 $(Aeson.deriveFromJSON
      Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 11
         }
      ''Chargeback)
 
-makeFieldsNoPrefix ''Chargeback
+makeFields ''Chargeback
 
 data ChargebackAPI route = ChargebackAPI
     { getChargebacksPaginated        :: route :- "chargebacks"

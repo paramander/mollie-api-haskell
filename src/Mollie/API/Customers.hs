@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -33,7 +32,7 @@ module Mollie.API.Customers
     , createdAt
     ) where
 
-import           Control.Lens        (makeFieldsNoPrefix, (&), (.~))
+import           Control.Lens        (makeFields, (&), (.~))
 import           Data.Aeson          ((.!=), (.:), (.:?))
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
@@ -42,6 +41,7 @@ import           Data.Default        (Default, def)
 import qualified Data.Text           as Text
 import qualified Data.Time           as Time
 import           GHC.Generics        (Generic)
+import           Mollie.API.Helpers
 import           Mollie.API.Internal (HalJSON)
 import           Mollie.API.Methods  (PaymentMethod (..))
 import qualified Mollie.API.Payments as Payments
@@ -55,32 +55,32 @@ import           Servant.API.Generic
   For more information see: https://www.mollie.com/en/docs/reference/customers/create.
 -}
 data NewCustomer = NewCustomer
-    { _name     :: Maybe Text.Text
+    { _newCustomerName     :: Maybe Text.Text
     -- ^Set the full name of the customer.
-    , _email    :: Maybe Text.Text
+    , _newCustomerEmail    :: Maybe Text.Text
     -- ^Set the email address.
-    , _locale   :: Maybe Text.Text
+    , _newCustomerLocale   :: Maybe Text.Text
     -- ^Set the language to use for this customer during checkout,
-    , _metadata :: Maybe Aeson.Value
+    , _newCustomerMetadata :: Maybe Aeson.Value
     -- ^Set any additional data in JSON format.
     }
     deriving (Show)
 
 instance Default NewCustomer where
     def = NewCustomer
-        { _name = def
-        , _email = def
-        , _locale = def
-        , _metadata = def
+        { _newCustomerName = def
+        , _newCustomerEmail = def
+        , _newCustomerLocale = def
+        , _newCustomerMetadata = def
         }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 12
         }
     ''NewCustomer)
 
-makeFieldsNoPrefix ''NewCustomer
+makeFields ''NewCustomer
 
 {-|
   Representation of an customer available at Mollie.
@@ -88,40 +88,40 @@ makeFieldsNoPrefix ''NewCustomer
   For more information see: https://www.mollie.com/en/docs/reference/customers/get.
 -}
 data Customer = Customer
-    { _id                  :: CustomerId
+    { _customerId                  :: CustomerId
     -- ^Mollies reference to the customer.
-    , _mode                :: Mode
+    , _customerMode                :: Mode
     -- ^The mode in which this customer was created.
-    , _name                :: Maybe Text.Text
+    , _customerName                :: Maybe Text.Text
     -- ^The customers full name.
-    , _email               :: Maybe Text.Text
+    , _customerEmail               :: Maybe Text.Text
     -- ^The cusomters email address.
-    , _locale              :: Maybe Text.Text
+    , _customerLocale              :: Maybe Text.Text
     -- ^The locale used for this customer during checkout.
-    , _metadata            :: Maybe Aeson.Value
+    , _customerMetadata            :: Maybe Aeson.Value
     -- ^Custom privided data for this customer.
-    , _recentlyUsedMethods :: [PaymentMethod]
+    , _customerRecentlyUsedMethods :: [PaymentMethod]
     -- ^The payment methods this customer recently used.
-    , _createdAt           :: Time.UTCTime
+    , _customerCreatedAt           :: Time.UTCTime
     -- ^The creation date of this customer.
     }
     deriving (Show)
 
 instance Aeson.FromJSON Customer where
     parseJSON (Aeson.Object o) = do
-        _id <- o .: "id"
-        _mode <- o .: "mode"
-        _name <- o .:? "name"
-        _email <- o .:? "email"
-        _locale <- o .:? "locale"
-        _metadata <- o .:? "metadata"
-        _recentlyUsedMethods <- o .:? "recentlyUsedMethods" .!= []
-        _createdAt <- o .: "createdAt"
+        _customerId <- o .: "id"
+        _customerMode <- o .: "mode"
+        _customerName <- o .:? "name"
+        _customerEmail <- o .:? "email"
+        _customerLocale <- o .:? "locale"
+        _customerMetadata <- o .:? "metadata"
+        _customerRecentlyUsedMethods <- o .:? "recentlyUsedMethods" .!= []
+        _customerCreatedAt <- o .: "createdAt"
 
         return Customer{..}
     parseJSON invalid = Aeson.typeMismatch "Customer" invalid
 
-makeFieldsNoPrefix ''Customer
+makeFields ''Customer
 
 {-|
   Helper to create a minimal new customer.

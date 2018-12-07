@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -36,7 +35,7 @@ module Mollie.API.Subscriptions
     , webhookUrl
     ) where
 
-import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
+import           Control.Lens         (makeFields, (&), (.~))
 import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import           Data.Default         (Default, def)
@@ -45,6 +44,7 @@ import qualified Data.Text            as Text
 import qualified Data.Time            as Time
 import           GHC.Generics         (Generic)
 import qualified Mollie.API.Customers as Customers
+import           Mollie.API.Helpers
 import           Mollie.API.Internal  (HalJSON)
 import           Mollie.API.Methods   (PaymentMethod (..))
 import qualified Mollie.API.Payments  as Payments
@@ -58,41 +58,41 @@ import           Servant.API.Generic
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/create.
 -}
 data NewSubscription = NewSubscription
-    { _amount      :: Amount
+    { _newSubscriptionAmount      :: Amount
     -- ^Set the amount you want to charge each subscription cycle.
-    , _times       :: Maybe Int
+    , _newSubscriptionTimes       :: Maybe Int
     -- ^Set the total number of charges for the subscription to complete. Leave empty for ongoing subscriptions.
-    , _interval    :: Text.Text
+    , _newSubscriptionInterval    :: Text.Text
     -- ^Set the interval to wait between charges like `1 month(s)`, `2 weeks` or `14 days`.
-    , _startDate   :: Maybe Text.Text
+    , _newSubscriptionStartDate   :: Maybe Text.Text
     -- ^Set the start date of the subscription in YYYY-MM-DD format. This is the first day on which your customer will be charged. When this parameter is not provided, the current date will be used instead.
-    , _description :: Text.Text
+    , _newSubscriptionDescription :: Text.Text
     -- ^Set the description which will be included in the payment description along with the carge date in `Y-m-d` format.
-    , _method      :: Maybe PaymentMethod
+    , _newSubscriptionMethod      :: Maybe PaymentMethod
     -- ^Force the payment method, leave empty to use one of the customers valid mandates.
-    , _webhookUrl  :: Maybe Text.Text
+    , _newSubscriptionWebhookUrl  :: Maybe Text.Text
     -- ^Set a webhook URL for all subscription payments.
     }
     deriving (Show)
 
 instance Default NewSubscription where
     def = NewSubscription
-        { _amount = def
-        , _times = def
-        , _interval = mempty
-        , _startDate = def
-        , _description = mempty
-        , _method = def
-        , _webhookUrl = def
+        { _newSubscriptionAmount = def
+        , _newSubscriptionTimes = def
+        , _newSubscriptionInterval = mempty
+        , _newSubscriptionStartDate = def
+        , _newSubscriptionDescription = mempty
+        , _newSubscriptionMethod = def
+        , _newSubscriptionWebhookUrl = def
         }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 16
         }
     ''NewSubscription)
 
-makeFieldsNoPrefix ''NewSubscription
+makeFields ''NewSubscription
 
 {-|
   All possible statusses a subscription could be assigned.
@@ -122,40 +122,40 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/subscriptions/get.
 -}
 data Subscription = Subscription
-    { _id          :: Text.Text
+    { _subscriptionId          :: Text.Text
     -- ^Mollies reference to the subscription.
-    , _mode        :: Mode
+    , _subscriptionMode        :: Mode
     -- ^The mode used to create this subscription
-    , _createdAt   :: Time.UTCTime
+    , _subscriptionCreatedAt   :: Time.UTCTime
     -- ^The date on which this subscription was created.
-    , _status      :: SubscriptionStatus
+    , _subscriptionStatus      :: SubscriptionStatus
     -- ^The subscriptions status.
-    , _amount      :: Amount
+    , _subscriptionAmount      :: Amount
     -- ^The amount charged with each payment for this subscription.
-    , _times       :: Maybe Int
+    , _subscriptionTimes       :: Maybe Int
     -- ^The total number or charges for the subscription to complete.
-    , _interval    :: Text.Text
+    , _subscriptionInterval    :: Text.Text
     -- ^The interval to wait between charges.
-    , _startDate   :: Maybe Text.Text
+    , _subscriptionStartDate   :: Maybe Text.Text
     -- ^Set the start date of the subscription in YYYY-MM-DD format.
-    , _description :: Text.Text
+    , _subscriptionDescription :: Text.Text
     -- ^The description for the payments made with this subscription.
-    , _method      :: Maybe PaymentMethod
+    , _subscriptionMethod      :: Maybe PaymentMethod
     -- ^The payment method used for this subscription.
-    , _canceledAt  :: Maybe Time.UTCTime
+    , _subscriptionCanceledAt  :: Maybe Time.UTCTime
     -- ^The date on which this subscription was canceled.
-    , _webhookUrl  :: Maybe Text.Text
+    , _subscriptionWebhookUrl  :: Maybe Text.Text
     -- ^The URL Mollie will call as soon a payment status change takes place.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 13
         }
     ''Subscription)
 
-makeFieldsNoPrefix ''Subscription
+makeFields ''Subscription
 
 {-|
   Servant API definition for Mollie subscriptions API https://www.mollie.com/en/docs/reference/subscriptions/get.

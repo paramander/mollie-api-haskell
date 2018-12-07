@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -14,7 +13,7 @@ module Mollie.API.Methods
     , PaymentMethod (..)
     , MethodImage (..)
     , Method (..)
-    , MethodAPI (..)
+    , MethodAPI
     -- Lens getters
     , Mollie.API.Methods.id
     , description
@@ -30,6 +29,7 @@ import qualified Data.Aeson.TH       as Aeson
 import qualified Data.Aeson.Types    as Aeson
 import qualified Data.Text           as Text
 import           GHC.Generics        (Generic)
+import           Mollie.API.Helpers
 import           Mollie.API.Internal (HalJSON)
 import           Mollie.API.Types
 import           Servant.API
@@ -83,22 +83,22 @@ instance Aeson.FromJSON PaymentMethod where
   Images associated with a payment method.
 -}
 data MethodImage = MethodImage
-    { _size1x :: Text.Text
+    { _methodImageSize1x :: Text.Text
     -- ^Normal method icon, 32x24 pixels.
-    , _size2x :: Text.Text
+    , _methodImageSize2x :: Text.Text
     -- ^Bigger method icon, 64x48px pixels.
-    , _svg    :: Text.Text
+    , _methodImageSvg    :: Text.Text
     -- ^Vector icon, can scale to any size.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 12
         }
     ''MethodImage)
 
-Lens.makeFieldsNoPrefix ''MethodImage
+Lens.makeFields ''MethodImage
 
 {-|
   Representation of a payment method available at Mollie.
@@ -106,22 +106,22 @@ Lens.makeFieldsNoPrefix ''MethodImage
   For more information see: https://www.mollie.com/en/docs/reference/methods/get.
 -}
 data Method = Method
-    { _id          :: PaymentMethod
+    { _methodId          :: PaymentMethod
     -- ^Mollies reference to the method.
-    , _description :: Text.Text
+    , _methodDescription :: Text.Text
     -- ^Full name of the method. This value changes based on requested locale.
-    , _image       :: MethodImage
+    , _methodImage       :: MethodImage
     -- ^Icons for this method.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 7
         }
     ''Method)
 
-Lens.makeFieldsNoPrefix ''Method
+Lens.makeFields ''Method
 
 data MethodAPI route = MethodAPI
     { getMethods :: route :- "methods"

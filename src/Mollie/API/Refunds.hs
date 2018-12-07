@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -28,13 +27,14 @@ module Mollie.API.Refunds
     , createdAt
     ) where
 
-import           Control.Lens        (makeFieldsNoPrefix)
+import           Control.Lens        (makeFields)
 import qualified Data.Aeson          as Aeson
 import qualified Data.Aeson.TH       as Aeson
 import           Data.Default        (Default, def)
 import qualified Data.Text           as Text
 import qualified Data.Time           as Time
 import           GHC.Generics        (Generic)
+import           Mollie.API.Helpers
 import           Mollie.API.Internal (HalJSON)
 import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
@@ -47,26 +47,26 @@ import           Servant.API.Generic
   For more information see: https://www.mollie.com/en/docs/reference/refunds/create.
 -}
 data NewRefund = NewRefund
-    { _amount      :: Maybe Amount
+    { _newRefundAmount      :: Maybe Amount
     -- ^The amount to refund. For some payments, it can be up to €25.00 more than the original transaction amount.
-    , _description :: Maybe Text.Text
+    , _newRefundDescription :: Maybe Text.Text
     -- ^Set the description. Will be shown on card or bank statement.
     }
     deriving (Show)
 
 instance Default NewRefund where
     def = NewRefund
-        { _amount = def
-        , _description = def
+        { _newRefundAmount = def
+        , _newRefundDescription = def
         }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 10
         }
     ''NewRefund)
 
-makeFieldsNoPrefix ''NewRefund
+makeFields ''NewRefund
 
 {-|
   All possible statusses a refund could be assigned.
@@ -103,30 +103,30 @@ $(Aeson.deriveFromJSON
   For more information see: https://www.mollie.com/en/docs/reference/refunds/get.
 -}
 data Refund = Refund
-    { _id               :: Text.Text
+    { _refundId               :: Text.Text
     -- ^Mollies reference to the refund.
-    , _amount           :: Amount
+    , _refundAmount           :: Amount
     -- ^The amount refunded to your customer with this refund.
-    , _settlementAmount :: Maybe Amount
+    , _refundSettlementAmount :: Maybe Amount
     -- ^This optional field will contain the amount that will be deducted from your account balance.
-    , _description      :: Text.Text
+    , _refundDescription      :: Text.Text
     -- ^The description of the refund that may be shown to your customer.
-    , _status           :: RefundStatus
+    , _refundStatus           :: RefundStatus
     -- ^The status in which this refund currently is.
-    , _paymentId        :: PaymentId
+    , _refundPaymentId        :: PaymentId
     -- ^The unique identifier of the payment this refund was created for.
-    , _createdAt        :: Time.UTCTime
+    , _refundCreatedAt        :: Time.UTCTime
     -- ^The date and time the refund was issued.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 7
         }
     ''Refund)
 
-makeFieldsNoPrefix ''Refund
+makeFields ''Refund
 
 data RefundAPI route = RefundAPI
     { getRefundsPaginated        :: route :- "refunds"

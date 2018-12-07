@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE DuplicateRecordFields  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -41,7 +40,7 @@ module Mollie.API.Mandates
     , cardExpiryDate
     ) where
 
-import           Control.Lens         (makeFieldsNoPrefix, (&), (.~))
+import           Control.Lens         (makeFields, (&), (.~))
 import qualified Data.Aeson           as Aeson
 import qualified Data.Aeson.TH        as Aeson
 import           Data.Default         (Default, def)
@@ -49,6 +48,7 @@ import qualified Data.Text            as Text
 import qualified Data.Time            as Time
 import           GHC.Generics         (Generic)
 import qualified Mollie.API.Customers as Customers
+import           Mollie.API.Helpers
 import           Mollie.API.Internal  (HalJSON)
 import           Mollie.API.Methods   (PaymentMethod (..))
 import           Mollie.API.Types
@@ -61,38 +61,38 @@ import           Servant.API.Generic
   For more information see: https://www.mollie.com/en/docs/reference/mandates/create.
 -}
 data NewMandate = NewMandate
-    { _method           :: PaymentMethod
+    { _newMandateMethod           :: PaymentMethod
     -- ^Set the payment method of the mandate. Currently only directdebit is supported.
-    , _consumerName     :: Text.Text
+    , _newMandateConsumerName     :: Text.Text
     -- ^Set the consumer's name.
-    , _consumerAccount  :: Text.Text
+    , _newMandateConsumerAccount  :: Text.Text
     -- ^Set the consumer's IBAN.
-    , _consumerBic      :: Maybe Text.Text
+    , _newMandateConsumerBic      :: Maybe Text.Text
     -- ^Set the consumer's bank BIC/SWIFT code.
-    , _signatureDate    :: Maybe Text.Text
+    , _newMandateSignatureDate    :: Maybe Text.Text
     -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
-    , _mandateReference :: Maybe Text.Text
+    , _newMandateMandateReference :: Maybe Text.Text
     -- ^Set a custom reference to this mandate.
     }
     deriving (Show)
 
 instance Default NewMandate where
     def = NewMandate
-        { _method = Directdebit
-        , _consumerName = mempty
-        , _consumerAccount = mempty
-        , _consumerBic = def
-        , _signatureDate = def
-        , _mandateReference = def
+        { _newMandateMethod = Directdebit
+        , _newMandateConsumerName = mempty
+        , _newMandateConsumerAccount = mempty
+        , _newMandateConsumerBic = def
+        , _newMandateSignatureDate = def
+        , _newMandateMandateReference = def
         }
 
 $(Aeson.deriveToJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 11
         }
     ''NewMandate)
 
-makeFieldsNoPrefix ''NewMandate
+makeFields ''NewMandate
 
 {-|
   All possible statusses for a Mandate.
@@ -116,32 +116,32 @@ $(Aeson.deriveFromJSON
   Details which might be available on Mandates.
 -}
 data MandateDetails = MandateDetails
-    { _consumerName    :: Maybe Text.Text
+    { _mandateDetailsConsumerName    :: Maybe Text.Text
     -- ^The direct debit account holder's name.
-    , _consumerAccount :: Maybe Text.Text
+    , _mandateDetailsConsumerAccount :: Maybe Text.Text
     -- ^The direct debit account IBAN.
-    , _consumerBic     :: Maybe Text.Text
+    , _mandateDetailsConsumerBic     :: Maybe Text.Text
     -- ^The direct debit account BIC.
-    , _cardHolder      :: Maybe Text.Text
+    , _mandateDetailsCardHolder      :: Maybe Text.Text
     -- ^The credit card holder's name.
-    , _cardNumber      :: Maybe Text.Text
+    , _mandateDetailsCardNumber      :: Maybe Text.Text
     -- ^The last 4 digits of the credit card number.
-    , _cardLabel       :: Maybe Text.Text
+    , _mandateDetailsCardLabel       :: Maybe Text.Text
     -- ^The credit card's label.
-    , _cardFingerprint :: Maybe Text.Text
+    , _mandateDetailsCardFingerprint :: Maybe Text.Text
     -- ^Unique alphanumeric representation of a credit card. Usable to identify returning customers.
-    , _cardExpiryDate  :: Maybe Text.Text
+    , _mandateDetailsCardExpiryDate  :: Maybe Text.Text
     -- ^The credit card's expiry date in `YYYY-MM-DD` format.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 15
         }
     ''MandateDetails)
 
-makeFieldsNoPrefix ''MandateDetails
+makeFields ''MandateDetails
 
 {-|
   Representation of a mandate available at Mollie.
@@ -149,30 +149,30 @@ makeFieldsNoPrefix ''MandateDetails
   For more information see: https://www.mollie.com/en/docs/reference/mandates/get.
 -}
 data Mandate = Mandate
-    { _id               :: MandateId
+    { _mandateId               :: MandateId
     -- ^Mollies reference to the mandate.
-    , _status           :: MandateStatus
+    , _mandateStatus           :: MandateStatus
     -- ^The status of the mandate.
-    , _method           :: PaymentMethod
+    , _mandateMethod           :: PaymentMethod
     -- ^The payment method of the mandate.
-    , _details          :: Maybe MandateDetails
+    , _mandateDetails          :: Maybe MandateDetails
     -- ^The mandate details.
-    , _mandateReference :: Maybe Text.Text
+    , _mandateMandateReference :: Maybe Text.Text
     -- ^The custom reference set for this mandate.
-    , _signatureDate    :: Maybe Text.Text
+    , _mandateSignatureDate    :: Maybe Text.Text
     -- ^Set the date the mandate was signed in `YYYY-MM-DD` format.
-    , _createdAt        :: Time.UTCTime
+    , _mandateCreatedAt        :: Time.UTCTime
     -- ^The date on which this mandate was created.
     }
     deriving (Show)
 
 $(Aeson.deriveFromJSON
     Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = drop 1
+        { Aeson.fieldLabelModifier = lowerFirst . drop 8
         }
     ''Mandate)
 
-makeFieldsNoPrefix ''Mandate
+makeFields ''Mandate
 
 newMandate :: PaymentMethod -- ^ _method
            -> Text.Text -- ^ _consumerName
