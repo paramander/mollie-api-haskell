@@ -7,9 +7,6 @@
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeOperators          #-}
 
-{-|
-  [WARNING]: This implementation is currently untested! Due to lack of access to the Mandates API.
--}
 module Mollie.API.Mandates
     ( MandateAPI
     , newMandate
