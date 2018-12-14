@@ -174,8 +174,8 @@ mollieClient = fromServant $ client servantApi
 runMollie :: ClientEnv -> ClientM a -> IO (Either ResponseError a)
 runMollie env apiFunction = do
     res <- runClientM apiFunction env
-    case res of
-        Left failure -> do
-            return $ Left $ handleError failure
-        Right success ->
-            return $ Right success
+    return $ mapLeft handleError res
+    where
+        mapLeft :: (a -> c) -> Either a b -> Either c b
+        mapLeft f (Left x) = Left (f x)
+        mapLeft f (Right x) = Right x
