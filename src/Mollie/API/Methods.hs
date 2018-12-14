@@ -39,20 +39,21 @@ import           Servant.API.Generic
   All possible payment methods.
 -}
 data PaymentMethod
-    = Ideal
-    | Creditcard
-    | Sofort
+    = Bancontact
     | Banktransfer
-    | Directdebit
-    | Bancontact
-    | Eps
-    | Giropay
-    | Kbc
     | Belfius
-    | Paypal
     | Bitcoin
-    | Podiumcadeaukaart
+    | Creditcard
+    | Directdebit
+    | Eps
+    | Giftcard
+    | Giropay
+    | Ideal
+    | Inghomepay
+    | Kbc
+    | Paypal
     | Paysafecard
+    | Sofort
     | NewPaymentMethod Text.Text -- When this shows up in a response from or is required for a request to Mollie contact package maintainer.
     deriving (Read, Show, Eq)
 
@@ -74,9 +75,10 @@ instance Aeson.FromJSON PaymentMethod where
             invalid -> Aeson.typeMismatch "PaymentMethod" invalid
         where methods = map
                   (\method -> (Aeson.toJSON method, method))
-                  [ Ideal, Creditcard, Sofort, Banktransfer
-                  , Directdebit, Belfius, Paypal, Bitcoin, Podiumcadeaukaart
-                  , Paysafecard
+                  [ Bancontact, Banktransfer, Belfius, Bitcoin
+                  , Creditcard, Directdebit, Eps, Giftcard
+                  , Giropay, Ideal, Inghomepay, Kbc
+                  , Paypal, Paysafecard, Sofort
                   ]
 
 {-|
