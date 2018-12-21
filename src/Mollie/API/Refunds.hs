@@ -17,6 +17,7 @@ module Mollie.API.Refunds
     , cancelPaymentRefund
     , RefundStatus (..)
     , Refund (..)
+    , NewRefund (..)
     -- Lens getters
     , Mollie.API.Refunds.id
     , amount

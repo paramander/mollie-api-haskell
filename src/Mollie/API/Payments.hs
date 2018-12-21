@@ -247,6 +247,8 @@ data Payment = Payment
     -- ^The payment description, as show on the bank or card statement.
     , _paymentRedirectUrl      :: Maybe Text.Text
     -- ^The URL your customer will be redirected to after completing or canceling the payment process
+    , _paymentMollieUrl        :: Maybe Text.Text
+    -- ^The payment screen URL your customer should visit to make the payment. This is where you should redirect the customer to.
     , _paymentWebhookUrl       :: Maybe Text.Text
     -- ^The URL Mollie will call as soon an important status change takes place.
     , _paymentMethod           :: Maybe PaymentMethod
@@ -305,6 +307,7 @@ instance Aeson.FromJSON Payment where
         _paymentMandateId <- o .:? "mandateId"
         _paymentSubscriptionId <- o .:? "subscriptionId"
         _paymentDetails <- o .:? "details"
+        _paymentMollieUrl <- fmap (fmap _linkHref) ((o .: "_links") >>= (.:? "checkout"))
 
         return Payment{..}
     parseJSON invalid = Aeson.typeMismatch "Payment" invalid
