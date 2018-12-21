@@ -14,6 +14,7 @@ module Mollie.API.Mandates
     , getCustomerMandate
     , getCustomerMandates
     , getCustomerMandatesPaginated
+    , revokeCustomerMandate
     , NewMandate (..)
     , MandateStatus (..)
     , MandateDetails (..)
@@ -216,4 +217,10 @@ data MandateAPI route = MandateAPI
                                       :> Capture "id" MandateId
                                       :> Get '[HalJSON] Mandate
     -- ^Handler to get a mandate by its identifier for a specific customer. See https://docs.mollie.com/reference/v2/mandates-api/get-mandate
+    , revokeCustomerMandate           :: route :- "customers"
+                                      :> Capture "customerId" Customers.CustomerId
+                                      :> "mandates"
+                                      :> Capture "mandateId" MandateId
+                                      :> DeleteNoContent '[HalJSON] NoContent
+    -- ^Handler to remove a mandate by its identifier for a specific customer. See https://docs.mollie.com/reference/v2/mandates-api/revoke-mandate
     } deriving Generic
