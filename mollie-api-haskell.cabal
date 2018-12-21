@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Paramander
 maintainer:          mats@paramander.com
-copyright:           2016 Paramander
+copyright:           2018 Paramander
 category:            Web
 build-type:          Simple
 -- extra-source-files:
