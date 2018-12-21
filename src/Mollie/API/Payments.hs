@@ -18,6 +18,7 @@ module Mollie.API.Payments
     , getPayment
     , getPayments
     , getPaymentsPaginated
+    , cancelPayment
     , PaymentStatus (..)
     , PaymentMethod (..)
     , SequenceType (..)
@@ -383,4 +384,8 @@ data PaymentAPI route = PaymentAPI
                               :> Capture "id" PaymentId
                               :> Get '[HalJSON] Payment
     -- ^Handler to get a payment by its identifier. See https://docs.mollie.com/reference/v2/payments-api/create-payment
+    , cancelPayment        :: route :- "payments"
+                              :> Capture "id" PaymentId
+                              :> Delete '[HalJSON] Payment
+    -- ^Handler to cancel a payment by its identifier. See https://docs.mollie.com/reference/v2/payments-api/cancel-payment
     } deriving Generic
