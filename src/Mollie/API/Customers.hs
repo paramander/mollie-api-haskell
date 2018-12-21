@@ -18,110 +18,16 @@ module Mollie.API.Customers
     , createCustomerPayment
     , getCustomerPayments
     , getCustomerPaymentsPaginated
-    , NewCustomer (..)
-    , CustomerId
-    , Customer (..)
-    -- Lens getters
-    , Mollie.API.Customers.id
-    , mode
-    , name
-    , email
-    , locale
-    , metadata
-    , recentlyUsedMethods
-    , createdAt
     ) where
 
-import           Control.Lens        (makeFields, (&), (.~))
-import           Data.Aeson          ((.!=), (.:), (.:?))
-import qualified Data.Aeson          as Aeson
-import qualified Data.Aeson.TH       as Aeson
-import qualified Data.Aeson.Types    as Aeson
-import           Data.Default        (Default, def)
+import           Control.Lens        ((&), (.~))
+import           Data.Default        (def)
 import qualified Data.Text           as Text
-import qualified Data.Time           as Time
 import           GHC.Generics        (Generic)
-import           Mollie.API.Helpers
 import           Mollie.API.Internal (HalJSON)
-import           Mollie.API.Methods  (PaymentMethod (..))
-import qualified Mollie.API.Payments as Payments
 import           Mollie.API.Types
 import           Servant.API
 import           Servant.API.Generic
-
-{-|
-  Structure to request a new customer with.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/create.
--}
-data NewCustomer = NewCustomer
-    { _newCustomerName     :: Maybe Text.Text
-    -- ^Set the full name of the customer.
-    , _newCustomerEmail    :: Maybe Text.Text
-    -- ^Set the email address.
-    , _newCustomerLocale   :: Maybe Text.Text
-    -- ^Set the language to use for this customer during checkout,
-    , _newCustomerMetadata :: Maybe Aeson.Value
-    -- ^Set any additional data in JSON format.
-    }
-    deriving (Show)
-
-instance Default NewCustomer where
-    def = NewCustomer
-        { _newCustomerName = def
-        , _newCustomerEmail = def
-        , _newCustomerLocale = def
-        , _newCustomerMetadata = def
-        }
-
-$(Aeson.deriveToJSON
-    Aeson.defaultOptions
-        { Aeson.fieldLabelModifier = lowerFirst . drop 12
-        }
-    ''NewCustomer)
-
-makeFields ''NewCustomer
-
-{-|
-  Representation of an customer available at Mollie.
-
-  For more information see: https://www.mollie.com/en/docs/reference/customers/get.
--}
-data Customer = Customer
-    { _customerId                  :: CustomerId
-    -- ^Mollies reference to the customer.
-    , _customerMode                :: Mode
-    -- ^The mode in which this customer was created.
-    , _customerName                :: Maybe Text.Text
-    -- ^The customers full name.
-    , _customerEmail               :: Maybe Text.Text
-    -- ^The cusomters email address.
-    , _customerLocale              :: Maybe Text.Text
-    -- ^The locale used for this customer during checkout.
-    , _customerMetadata            :: Maybe Aeson.Value
-    -- ^Custom privided data for this customer.
-    , _customerRecentlyUsedMethods :: [PaymentMethod]
-    -- ^The payment methods this customer recently used.
-    , _customerCreatedAt           :: Time.UTCTime
-    -- ^The creation date of this customer.
-    }
-    deriving (Show)
-
-instance Aeson.FromJSON Customer where
-    parseJSON (Aeson.Object o) = do
-        _customerId <- o .: "id"
-        _customerMode <- o .: "mode"
-        _customerName <- o .:? "name"
-        _customerEmail <- o .:? "email"
-        _customerLocale <- o .:? "locale"
-        _customerMetadata <- o .:? "metadata"
-        _customerRecentlyUsedMethods <- o .:? "recentlyUsedMethods" .!= []
-        _customerCreatedAt <- o .: "createdAt"
-
-        return Customer{..}
-    parseJSON invalid = Aeson.typeMismatch "Customer" invalid
-
-makeFields ''Customer
 
 {-|
   Helper to create a minimal new customer.
@@ -165,8 +71,8 @@ data CustomerAPI route = CustomerAPI
                                       :> Capture "id" CustomerId
                                       :> "payments"
                                       :> QueryParam "limit" Int
-                                      :> QueryParam "from" Payments.PaymentId
-                                      :> Get '[HalJSON] (List Payments.Payment)
+                                      :> QueryParam "from" PaymentId
+                                      :> Get '[HalJSON] (List Payment)
     -- ^Handler to get a paginated list of payments for a specific customer. Offset the results by passing the last payment ID in the `from` query param. The payment with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/customers-api/list-customers-payments
     --
     -- Example for fetching the last payment for a  customer:
@@ -181,12 +87,12 @@ data CustomerAPI route = CustomerAPI
     , getCustomerPayments          :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> "payments"
-                                      :> Get '[HalJSON] (List Payments.Payment)
+                                      :> Get '[HalJSON] (List Payment)
     -- ^Handler to get a paginated list of payments for a specific customer. Applies default pagination for newest 250 payments. See https://docs.mollie.com/reference/v2/customers-api/list-customer-payments
     , createCustomerPayment        :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> "payments"
-                                      :> ReqBody '[JSON] Payments.NewPayment
-                                      :> Post '[HalJSON] Payments.Payment
+                                      :> ReqBody '[JSON] NewPayment
+                                      :> Post '[HalJSON] Payment
     -- ^Handler to create a new payment for a specific customer. See https://docs.mollie.com/reference/v2/customers-api/create-customer-payment
     } deriving Generic

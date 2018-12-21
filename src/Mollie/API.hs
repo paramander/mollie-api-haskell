@@ -20,6 +20,7 @@ module Mollie.API
     , subscriptionClient
     , createEnv
     , runMollie
+    , module Mollie.API.Types
     ) where
 
 import           Data.Proxy               (Proxy (..))
@@ -32,7 +33,7 @@ import           Mollie.API.Methods       (MethodAPI)
 import           Mollie.API.Payments      (PaymentAPI)
 import           Mollie.API.Refunds       (RefundAPI)
 import           Mollie.API.Subscriptions (SubscriptionAPI)
-import           Mollie.API.Types         (ResponseError)
+import           Mollie.API.Types
 import           Servant.API
 import           Servant.API.Generic
 import           Servant.Client
@@ -177,5 +178,5 @@ runMollie env apiFunction = do
     return $ mapLeft handleError res
     where
         mapLeft :: (a -> c) -> Either a b -> Either c b
-        mapLeft f (Left x) = Left (f x)
-        mapLeft f (Right x) = Right x
+        mapLeft f (Left x)  = Left (f x)
+        mapLeft _ (Right x) = Right x

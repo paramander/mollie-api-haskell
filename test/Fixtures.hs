@@ -4,35 +4,29 @@ import           Data.Aeson               (decode, eitherDecode)
 import           Data.Aeson.Types         (FromJSON)
 import qualified Data.ByteString.Lazy     as BL
 import           Data.Maybe               (fromMaybe)
-import qualified Mollie.API.Chargebacks   as Chargebacks
-import qualified Mollie.API.Customers     as Customers
-import qualified Mollie.API.Mandates      as Mandates
-import qualified Mollie.API.Payments      as Payments
-import qualified Mollie.API.Refunds       as Refunds
-import qualified Mollie.API.Subscriptions as Subscriptions
-import qualified Mollie.API.Types         as Mollie
+import           Mollie.API.Types
 
-payments :: IO (Mollie.List Payments.Payment)
+payments :: IO (List Payment)
 payments =
     readJSONFile "test/fixtures/payments.json"
 
-customers :: IO (Mollie.List Customers.Customer)
+customers :: IO (List Customer)
 customers =
     readJSONFile "test/fixtures/customers.json"
 
-refunds :: IO (Mollie.List Refunds.Refund)
+refunds :: IO (List Refund)
 refunds =
     readJSONFile "test/fixtures/refunds.json"
 
-subscriptions :: IO (Mollie.List Subscriptions.Subscription)
+subscriptions :: IO (List Subscription)
 subscriptions =
     readJSONFile "test/fixtures/subscriptions.json"
 
-mandates :: IO (Mollie.List Mandates.Mandate)
+mandates :: IO (List Mandate)
 mandates =
     readJSONFile "test/fixtures/customers_mandates.json"
 
-chargebacks :: IO (Mollie.List Chargebacks.Chargeback)
+chargebacks :: IO (List Chargeback)
 chargebacks =
     readJSONFile "test/fixtures/chargebacks.json"
 

@@ -37,6 +37,9 @@ instance Aeson.ToJSON a => MimeRender HalJSON a where
 instance Aeson.FromJSON a => MimeUnrender HalJSON a where
     mimeUnrender _ = eitherDecodeLenient
 
+instance ToHttpApiData PaymentMethod where
+    toUrlPiece a = toText a
+
 handleError :: ServantError -> ResponseError
 handleError failure =
     case failure of
