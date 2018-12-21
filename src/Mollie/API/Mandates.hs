@@ -189,6 +189,16 @@ data MandateAPI route = MandateAPI
                                       :> QueryParam "from" MandateId
                                       :> Get '[HalJSON] (List Mandate)
     -- ^Handler to get a paginated list of mandates for a specific customer. Offset the results by passing the last mandate ID in the `from` query param. The mandate with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/mandates-api/list-mandates
+    --
+    -- Example for fetching the last mandate for a customer:
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Mandates
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let customerMandatesResult = runMollie env (getCustomerMandatesPaginated customerClient "cst_exampleid" (Just 1) Nothing)
+    -- @
     , getCustomerMandates          :: route :- "customers"
                                       :> Capture "customerId" Customers.CustomerId
                                       :> "mandates"

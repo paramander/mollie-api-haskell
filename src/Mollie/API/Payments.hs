@@ -362,6 +362,16 @@ data PaymentAPI route = PaymentAPI
                               :> QueryParam "from" PaymentId
                               :> Get '[HalJSON] (List Payment)
     -- ^Handler to get a paginated list of payments. Offset the results by passing the last payment ID in the `from` query param. The payment with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/payments-api/list-payments
+    --
+    -- Example for fetching the last 10 payments:
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Payments
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let paymentsResult = runMollie env (getPaymentsPaginated paymentClient (Just 10) Nothing)
+    -- @
     , getPayments          :: route :- "payments"
                               :> Get '[HalJSON] (List Payment)
     -- ^Handler to get a paginated list of payments. Applies default pagination for newest 250 customers. See https://docs.mollie.com/reference/v2/payments-api/list-payments

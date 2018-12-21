@@ -134,6 +134,16 @@ data RefundAPI route = RefundAPI
                                     :> QueryParam "from" RefundId
                                     :> Get '[HalJSON] (List Refund)
     -- ^Handler to get a paginated list of refunds. Offset the results by passing the last refund ID in the `from` query param. The refund with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/refunds-api/list-refunds
+    --
+    -- Example for fetching the last 3 refunds:
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Refunds
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let refundsResult = runMollie env (getRefundsPaginated refundClient (Just 3) Nothing)
+    -- @
     , getRefunds                 :: route :- "refunds"
                                     :> Get '[HalJSON] (List Refund)
     -- ^Handler to get a paginated list of refunds. Applies default pagination for newest 250 customers. See https://docs.mollie.com/reference/v2/refunds-api/list-refunds

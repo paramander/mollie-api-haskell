@@ -65,6 +65,16 @@ data ChargebackAPI route = ChargebackAPI
                                         :> QueryParam "from" ChargebackId
                                         :> Get '[HalJSON] (List Chargeback)
     -- ^Handler to get a paginated list of chargebacks. Offset the results by passing the last chargeback ID in the `from` query param. The chargeback with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/chargebacks-api/list-chargebacks
+    --
+    -- Example for fetching the last chargeback:
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Chargebacks
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let chargebacksResult = runMollie env (getChargebacksPaginated chargebackClient (Just 1) Nothing)
+    -- @
     , getChargebacks                 :: route :- "chargebacks"
                                         :> Get '[HalJSON] (List Chargeback)
     -- ^Handler to get a paginated list of chargebacks. Applies default pagination for newest 250 chargebacks. See https://docs.mollie.com/reference/v2/chargebacks-api/list-chargebacks

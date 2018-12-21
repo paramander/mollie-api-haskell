@@ -168,6 +168,16 @@ data SubscriptionAPI route = SubscriptionAPI
                                            :> QueryParam "from" SubscriptionId
                                            :> Get '[HalJSON] (List Subscription)
     -- ^Handler to get a paginated list of customers. Offset the results by passing the last customer ID in the `from` query param. The customer with this ID is included in the result set as well. See https://www.mollie.com/en/docs/reference/subscriptions/list
+    --
+    -- Example for fetching the last subscription of customer with id "cst_exampleid":
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Subscriptions
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let customerSubscriptionsResult = runMollie env (getCustomerSubscriptionsPaginated subscriptionClient "cst_exampleid" (Just 1) Nothing)
+    -- @
     , getCustomerSubscriptions          :: route :- "customers"
                                            :> Capture "customerId" Customers.CustomerId
                                            :> "subscriptions"
@@ -200,6 +210,16 @@ data SubscriptionAPI route = SubscriptionAPI
                                            :> QueryParam "from" Payments.PaymentId
                                            :> Get '[HalJSON] (List Payments.Payment)
     -- ^Handler to get a paginated list of payments of a specific subscription. Offset the result set to the payment with `from` query param. The payment with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/subscriptions-api/list-subscriptions-payments
+    --
+    -- Example for fetching the last 5 payments of a subscription with 'CustomerId' "cst_exampleid" and 'SubscriptionId' "sub_exampleid":
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Subscriptions
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let subscriptionPaymentsResult = runMollie env (getSubscriptionPaymentsPaginated subscriptionClient "cst_exampleid" "sub_exampleid" (Just 5) Nothing)
+    -- @
     , getSubscriptionPayments           :: route :- "customers"
                                            :> Capture "customerId" Customers.CustomerId
                                            :> "subscriptions"

@@ -140,6 +140,16 @@ data CustomerAPI route = CustomerAPI
                                       :> QueryParam "from" CustomerId
                                       :> Get '[HalJSON] (List Customer)
     -- ^Handler to get a paginated list of customers. Offset the results by passing the last customer ID in the `from` query param. The customer with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/customers-api/list-customers
+    --
+    -- Example for fetching the last customer:
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Customers
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let customersResult = runMollie env (getCustomersPaginated customerClient (Just 1) Nothing)
+    -- @
     , getCustomers                 :: route :- "customers"
                                       :> Get '[HalJSON] (List Customer)
     -- ^Handler to get a paginated list of customers. Applies default pagination for newest 250 customers. See https://docs.mollie.com/reference/v2/customers-api/list-customers
@@ -158,6 +168,16 @@ data CustomerAPI route = CustomerAPI
                                       :> QueryParam "from" Payments.PaymentId
                                       :> Get '[HalJSON] (List Payments.Payment)
     -- ^Handler to get a paginated list of payments for a specific customer. Offset the results by passing the last payment ID in the `from` query param. The payment with this ID is included in the result set as well. See https://docs.mollie.com/reference/v2/customers-api/list-customers-payments
+    --
+    -- Example for fetching the last payment for a  customer:
+    --
+    -- @
+    -- import Mollie.API
+    -- import Mollie.API.Customers
+    --
+    -- env <- createEnv "test_mollieapikeyexample"
+    -- let customerPaymentsResult = runMollie env (getCustomerPaymentsPaginated customerClient "cst_exampleid" (Just 1) Nothing)
+    -- @
     , getCustomerPayments          :: route :- "customers"
                                       :> Capture "id" CustomerId
                                       :> "payments"
