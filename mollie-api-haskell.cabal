@@ -28,11 +28,11 @@ library
   other-modules:       Mollie.API.Internal
                      , Paths_mollie_api_haskell
   build-depends:       base >= 4.7 && < 5
-                     , aeson >= 1.0 && < 1.4
+                     , aeson >= 1.0 && < 1.5
                      , time >= 1.5 && < 2
                      , text >= 1.2 && < 2
                      , http-client >= 0.5 && < 0.6
-                     , http-client-openssl >= 0.2 && < 0.3
+                     , http-client-openssl >= 0.2 && < 0.4
                      , HsOpenSSL >= 0.11 && < 0.12
                      , mtl >= 2.2 && < 3
                      , http-types >= 0.9 && < 1
