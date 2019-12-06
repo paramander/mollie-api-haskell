@@ -1,7 +1,7 @@
-# Mollie API client for Haskell
-
 # IMPORTANT
 `master` branch is for Mollie API v1. If you want v2 support, we have a beta client in branch [`feature/v2`](https://github.com/paramander/mollie-api-haskell/tree/feature/v2). You can find the v2 beta on hackage http://hackage.haskell.org/package/mollie-api-haskell-2.0.0.0
+
+# Mollie API client for Haskell
 
 Accepting [iDEAL](https://www.mollie.com/ideal/), [Bancontact/Mister Cash](https://www.mollie.com/mistercash/), [SOFORT Banking](https://www.mollie.com/sofort/), [Creditcard](https://www.mollie.com/creditcard/), [SEPA Bank transfer](https://www.mollie.com/banktransfer), [SEPA Direct debit](https://www.mollie.com/directdebit/), [Bitcoin](https://www.mollie.com/bitcoin/), [PayPal](https://www.mollie.com/paypal/), [Belfius Direct Net](https://www.mollie.com/belfiusdirectnet/) and [paysafecard](https://www.mollie.com/paysafecard/) online payments without fixed monthly costs or any punishing registration procedures. Just use the Mollie API to receive payments directly on your website or easily refund transactions to your customers.
 
