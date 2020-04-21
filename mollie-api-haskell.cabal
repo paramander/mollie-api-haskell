@@ -1,5 +1,5 @@
 name:                mollie-api-haskell
-version:             0.2.0.2
+version:             0.2.0.3
 synopsis:            Mollie API client for Haskell http://www.mollie.com
 description:         Please see README.md
 homepage:            https://github.com/paramander/mollie-api-haskell
